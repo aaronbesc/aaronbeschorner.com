@@ -101,8 +101,9 @@ export default async function Home() {
     <div className="relative flex h-dvh min-h-[560px] flex-col items-center px-4">
       <h1 className="sr-only">{PROFILE.name}</h1>
 
-      {/* Holds the closed island's place; the open menu overlays the page. */}
-      <header className="relative z-[60] mt-3 h-11 w-[13.5rem] shrink-0 md:h-12 md:w-[17rem] lg:mt-5">
+      {/* Holds the closed island's place; the open menu overlays the page.
+          No z-index here: the island's glass must see the page behind it. */}
+      <header className="relative mt-3 h-11 w-[13.5rem] shrink-0 md:h-12 md:w-[17rem] lg:mt-5">
         <Island />
       </header>
 

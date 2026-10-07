@@ -186,7 +186,7 @@ export default function Island() {
       onPointerLeave={(e) => {
         if (e.pointerType === "mouse" && !settling.current) setOpen(false);
       }}
-      className={`absolute top-0 left-1/2 -translate-x-1/2 glass rounded-[22px] transition-[width] duration-400 md:rounded-[24px] ${EASE} motion-reduce:transition-none ${
+      className={`glass absolute top-0 left-1/2 z-[60] -translate-x-1/2 rounded-[22px] transition-[width] duration-400 md:rounded-[24px] ${EASE} motion-reduce:transition-none ${
         open
           ? "w-[min(24rem,calc(100vw-2rem))]"
           : "w-full"
@@ -342,8 +342,8 @@ function MenuItem({
       data-menu-item
       aria-current={current || undefined}
       onClick={onSelect}
-      className={`${layout} cursor-pointer outline-none hover:bg-black/[0.06] focus-visible:bg-black/[0.06] ${
-        current ? "bg-black/[0.06]" : ""
+      className={`${layout} cursor-pointer outline-none hover:bg-black/5 focus-visible:bg-black/5 ${
+        current ? "bg-white/70" : ""
       }`}
     >
       {content}

@@ -7,7 +7,7 @@
   --color-muted: #928c88;
   /* Darker muted for small text on the island, so it stays readable over
      the glass (4.5:1 or better). */
-  --color-muted-strong: #625d59;
+  --color-muted-strong: #5b5652;
   --color-accent: #a259ff;
 
   /* Official University of Florida brand colors (brand.ufl.edu). */
@@ -64,24 +64,23 @@ body {
 }
 
 /*
- * Frosted glass (the island): white at 55% over a blurred, saturated
- * backdrop, so whatever passes underneath shows through as soft color while
- * the text on top stays crisp. A faint, even 1px outline keeps its edge
- * visible over the white card. With "reduce transparency" on it stays glass,
- * just more opaque; without blur support it is near-solid white.
+ * Glass (the island). A translucent tint chosen so that over the page
+ * background it shows exactly the pill color, #e8eaeb, while anything that
+ * passes underneath shows through, softened by a light blur so it stays
+ * recognizable without competing with the text on top. With "reduce
+ * transparency" on it is a bit more opaque; without blur support, solid.
  */
 @utility glass {
-  background-color: rgb(255 255 255 / 0.92);
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.06);
+  background-color: var(--color-pill);
 
   @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
-    background-color: rgb(255 255 255 / 0.55);
-    -webkit-backdrop-filter: blur(14px) saturate(180%);
-    backdrop-filter: blur(14px) saturate(180%);
-  }
+    background-color: rgb(228 231 232 / 0.7);
+    -webkit-backdrop-filter: blur(6px) saturate(150%);
+    backdrop-filter: blur(6px) saturate(150%);
 
-  @media (prefers-reduced-transparency: reduce) {
-    background-color: rgb(255 255 255 / 0.8);
+    @media (prefers-reduced-transparency: reduce) {
+      background-color: rgb(229 231 232 / 0.8);
+    }
   }
 }
 
