@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 // Routes from the previous version of the site; old links land on the
 // homepage. Temporary (307) so these paths can be reused later.
-const legacyRoutes = ["/about", "/projects", "/contact", "/blog", "/mdx-test"];
+const legacyRoutes = ["/about", "/projects", "/contact", "/blog"];
 
 const nextConfig: NextConfig = {
   async redirects() {

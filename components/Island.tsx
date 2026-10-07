@@ -23,7 +23,6 @@ import {
 import { PROFILE } from "@/lib/profile";
 import MaskIcon from "./MaskIcon";
 import {
-  applyTheme,
   getTheme,
   setTheme,
   subscribeTheme,
@@ -71,8 +70,6 @@ export default function Island() {
   // Right after a keyboard toggle the pointer may be resting on the island;
   // ignore hover until the animation is done so it doesn't fight back.
   const settling = useRef(false);
-
-  useEffect(() => applyTheme(getTheme()), []);
 
   function items() {
     return [

@@ -147,6 +147,9 @@ export default async function Home() {
                 alt="Figma"
                 width={24}
                 height={18}
+                // The file has 6px of empty space on each side of the logo;
+                // pull it back so all three logos sit evenly apart.
+                className="-mx-1.5"
               />
               <Image
                 src="/icons/claude.png"

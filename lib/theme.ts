@@ -30,7 +30,7 @@ export function getTheme(): Theme {
   }
 }
 
-export function applyTheme(theme: Theme) {
+function applyTheme(theme: Theme) {
   const dark = theme === "dark" || (theme === "system" && systemDark().matches);
   const next = dark ? "dark" : "light";
   const root = document.documentElement;
