@@ -1,4 +1,5 @@
 import Image from "next/image";
+import type { ReactNode } from "react";
 import CopyEmail from "@/components/CopyEmail";
 import { Deck, DeckCards, DeckPager } from "@/components/Deck";
 import GoGators from "@/components/GoGators";
@@ -21,28 +22,69 @@ const term =
 const termA = `${term} gators-text`;
 const termB = `${term} gators-text gators-alt`;
 
+/**
+ * A logo sitting in a line of text, inside its term's underline. size
+ * evens out how much empty space each logo file has around its mark.
+ */
+function InlineLogo({ src, alt, size }: { src: string; alt: string; size: string }) {
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      width={56}
+      height={56}
+      draggable={false}
+      className={`mx-[0.12em] -my-[0.4em] inline-block align-middle ${size}`}
+    />
+  );
+}
+
+/** Keeps a word and its logo (or punctuation) on the same line. */
+function Nowrap({ className = "", children }: { className?: string; children: ReactNode }) {
+  return <span className={`whitespace-nowrap ${className}`}>{children}</span>;
+}
+
 // Sizes inside cards use cqi (percent of the card's width), so everything
 // scales together with the card.
 function BioCard({ socials }: { socials: Social[] }) {
   return (
     <div className="flex size-full flex-col justify-between p-[6cqi] md:px-[12cqi] md:py-[7cqi]">
-      <p className="text-[5.4cqi] text-fg md:text-[3cqi]">
-        I’m a <span className={termA}>Data Engineer</span> at Intempo. I
-        graduated from the{" "}
-        <GoGators className={termB}>
-          University of Florida
-          <Image
-            src="/images/uf-gators.png"
-            alt="Florida Gators logo"
-            width={56}
-            height={56}
-            draggable={false}
-            className="mx-[0.12em] -my-[0.4em] inline-block size-[1.75em] align-middle"
-          />
-        </GoGators>{" "}
-        with a B.S in <span className={termA}>Computer Science</span> and a
-        minor in <span className={termB}>Electrical Engineering</span>.
-      </p>
+      <div className="flex flex-col gap-[0.7em] text-[5.1cqi] text-fg md:text-[3cqi]">
+        <p>
+          I’m a <span className={termA}>Data Engineer</span> at Intempo. I
+          graduated from the{" "}
+          <GoGators className={termB}>
+            University of{" "}
+            <Nowrap>
+              Florida
+              <InlineLogo src="/images/uf-gators.png" alt="Florida Gators logo" size="size-[1.75em]" />
+            </Nowrap>
+          </GoGators>{" "}
+          with a B.S in <span className={termA}>Computer Science</span> and a
+          minor in <span className={termB}>Electrical Engineering</span>.
+        </p>
+        <p>
+          Most of my week lives inside a data pipeline in{" "}
+          <Nowrap className={termA}>
+            Fabric
+            <InlineLogo src="/icons/fabric.svg" alt="Microsoft Fabric logo" size="size-[1.15em]" />
+          </Nowrap>{" "}
+          or a model on{" "}
+          <Nowrap>
+            <span className={termB}>
+              Azure ML
+              <InlineLogo src="/icons/azure-ml.svg" alt="Azure Machine Learning logo" size="size-[1.15em]" />
+            </span>
+            .
+          </Nowrap>{" "}
+          The rest of it is a{" "}
+          <Nowrap className={termA}>
+            SoundCloud
+            <InlineLogo src="/icons/soundcloud.svg" alt="SoundCloud logo" size="size-[1.5em]" />
+          </Nowrap>{" "}
+          set on loop or a Fashion Week gallery open in another tab.
+        </p>
+      </div>
 
       <div className="flex flex-wrap items-center justify-center gap-[1em] text-[3.4cqi] md:text-[1.9cqi]">
         <CopyEmail email={PROFILE.email} />
