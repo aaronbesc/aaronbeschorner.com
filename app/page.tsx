@@ -1,6 +1,8 @@
 import Image from "next/image";
 import CopyEmail from "@/components/CopyEmail";
+import { Deck, DeckCards, DeckPager } from "@/components/Deck";
 import MadridClock from "@/components/MadridClock";
+import MaskIcon from "@/components/MaskIcon";
 import { getLatestCommit } from "@/lib/commit";
 import { getMadridWeather } from "@/lib/weather";
 
@@ -12,178 +14,196 @@ const socials = [
     name: "LinkedIn",
     href: "https://www.linkedin.com/in/aaron-beschorner/",
     icon: "/icons/linkedin.png",
-    size: 42,
+    size: "size-[1.6em]",
   },
   {
     name: "GitHub",
     href: "https://github.com/aaronbesc",
     icon: "/icons/github.png",
-    size: 42,
+    size: "size-[1.6em]",
   },
   // TODO: add X profile URL.
-  { name: "X", href: null, icon: "/icons/x.png", size: 36 },
+  { name: "X", href: null, icon: "/icons/x.png", size: "size-[1.4em]" },
 ];
 
 const term =
   "underline decoration-dotted decoration-from-font [text-decoration-skip-ink:none] [text-underline-position:from-font]";
 
+// Sizes inside cards use cqi (percent of the card's width), so everything
+// scales together with the card.
+function BioCard() {
+  return (
+    <div className="flex size-full flex-col justify-between p-[6cqi] md:px-[12cqi] md:py-[7cqi]">
+      <p className="text-[5.4cqi] text-black md:text-[3cqi]">
+        I’m a <span className={term}>Data Engineer</span> at Intempo. I
+        graduated from the{" "}
+        <span className={term}>
+          University of Florida
+          <Image
+            src="/images/uf-gators.png"
+            alt="Florida Gators logo"
+            width={56}
+            height={56}
+            draggable={false}
+            className="mx-[0.12em] -my-[0.4em] inline-block size-[1.75em] align-middle"
+          />
+        </span>{" "}
+        with a B.S in <span className={term}>Computer Science</span> and a
+        minor in <span className={term}>Electrical Engineering</span>.
+      </p>
+
+      <div className="flex flex-wrap items-center justify-center gap-[1em] text-[3.4cqi] md:text-[1.9cqi]">
+        <CopyEmail email={EMAIL} />
+        {socials.map(({ name, href, icon, size }) => {
+          const glyph = <MaskIcon src={icon} className={size} />;
+          const color = "text-muted transition-colors hover:text-ink";
+          return href ? (
+            <a
+              key={name}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={name}
+              className={`${color} flex focus-visible:text-ink`}
+            >
+              {glyph}
+            </a>
+          ) : (
+            <span key={name} role="img" aria-label={name} className={`${color} flex`}>
+              {glyph}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Placeholder until the content for cards 2–4 is designed.
+function ComingSoonCard() {
+  return (
+    <div className="flex size-full items-center justify-center font-mono text-[3.6cqi] font-light text-muted md:text-[1.9cqi]">
+      coming soon
+    </div>
+  );
+}
+
 export default async function Home() {
   const weather = await getMadridWeather();
   const commit = getLatestCommit();
+  const cards = [
+    <BioCard key="bio" />,
+    <ComingSoonCard key="2" />,
+    <ComingSoonCard key="3" />,
+    <ComingSoonCard key="4" />,
+  ];
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center px-4 lg:px-0">
-      <p className="mt-6 font-mono text-[15px] font-light lg:absolute lg:top-[57px] lg:right-[39px] lg:mt-0">
+    <div className="relative flex h-dvh min-h-[560px] flex-col items-center px-4">
+      <p className="mt-3 font-mono text-[11px] font-light lg:absolute lg:top-5 lg:right-6 lg:mt-0 lg:text-xs">
         <MadridClock /> in Madrid{weather && `, ${weather}`}
       </p>
 
-      <header className="mt-4 flex h-[90px] w-[450px] max-w-full shrink-0 items-start rounded-[50px] bg-pill pr-[40px] pl-[17px] lg:mt-[57px]">
+      <header className="mt-2 flex shrink-0 items-center gap-2.5 rounded-full bg-pill py-1.5 pr-5 pl-1.5 lg:mt-5">
         <Image
           src="/images/avatar.png"
           alt="Aaron Beschorner"
-          width={60}
-          height={60}
+          width={36}
+          height={36}
           priority
-          className="mt-[15px] rounded-full"
+          className="size-8 rounded-full md:size-9"
         />
-        <div className="mt-[14px] ml-[16px] font-medium">
-          <h1 className="text-[24px] leading-[29px] whitespace-nowrap">
+        <div className="leading-tight">
+          <h1 className="text-[14px] font-medium md:text-[15px]">
             Aaron Beschorner
           </h1>
-          <p className="mt-[2px] -ml-[3px] flex items-center text-[20px] leading-[24px] text-muted">
-            <span className="flex size-[18px] items-center justify-center">
-              <Image src="/icons/location.svg" alt="" width={12} height={15} />
-            </span>
-            <span className="ml-[6px]">Madrid, Spain</span>
+          <p className="flex items-center gap-1 text-[11px] font-medium text-muted md:text-[12px]">
+            <Image
+              src="/icons/location.svg"
+              alt=""
+              width={12}
+              height={15}
+              className="h-[1em] w-auto"
+            />
+            Madrid, Spain
           </p>
         </div>
-        <kbd className="relative mt-[23px] ml-auto hidden h-[44px] w-[82px] items-center justify-center font-sans text-[20px] font-medium text-muted sm:flex">
+        <kbd className="relative ml-3 hidden h-[26px] w-[48px] items-center justify-center font-sans text-[11px] font-medium text-muted md:flex">
           <Image
             src="/icons/kbd-bg.svg"
             alt=""
-            width={82}
-            height={44}
+            width={48}
+            height={26}
             className="absolute inset-0"
           />
           <span className="relative">Ctrl K</span>
         </kbd>
       </header>
 
-      <main className="relative mt-[42px] w-[1031px] max-w-full">
-        <div
-          aria-hidden
-          className="absolute inset-x-[9.6%] top-[62px] -bottom-[62px] rounded-[25px] bg-accent"
-        />
-        <div
-          aria-hidden
-          className="absolute inset-x-[5%] top-[34px] -bottom-[34px] rounded-[25px] bg-ink"
-        />
-        <section className="relative flex flex-col justify-between gap-12 rounded-[25px] bg-white px-6 pt-10 pb-8 sm:px-12 lg:min-h-[608px] lg:px-[156px] lg:pt-[95px] lg:pb-[45px]">
-          <p className="text-[22px] text-black sm:text-[28px] lg:text-[32px]">
-            I’m a <span className={term}>Data Engineer</span> at Intempo. I
-            graduated from the{" "}
-            <span className={term}>
-              University of Florida
-              <Image
-                src="/images/uf-gators.png"
-                alt="Florida Gators logo"
-                width={56}
-                height={56}
-                className="mx-[4px] -my-[12px] inline-block size-[1.75em] align-middle"
+      <Deck count={cards.length}>
+        <main className="min-h-0 w-full flex-1 py-4 lg:py-6">
+          <DeckCards cards={cards} label="About Aaron" />
+        </main>
+
+        <footer className="flex w-full shrink-0 flex-col items-center gap-3 pb-4 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:gap-6 lg:px-2 lg:pb-5">
+          <div className="order-2 font-mono text-[11px] font-light whitespace-nowrap text-muted lg:order-none lg:justify-self-start lg:text-xs">
+            <p>
+              <span className="text-ink">$</span> git log -1 --oneline
+            </p>
+            <p className="flex items-center text-ink">
+              <span className="max-w-[min(40ch,calc(100vw-4rem))] truncate">
+                {commit}
+              </span>
+              <span
+                aria-hidden
+                className="ml-[0.4em] inline-block h-[1.2em] w-[0.45em] bg-ink motion-safe:animate-blink"
               />
-            </span>{" "}
-            with a B.S in <span className={term}>Computer Science</span> and a
-            minor in <span className={term}>Electrical Engineering</span>.
-          </p>
-
-          <div className="flex flex-wrap items-end justify-center gap-[16px]">
-            <CopyEmail email={EMAIL} />
-            {socials.map(({ name, href, icon, size }) => {
-              const img = (
-                <Image src={icon} alt={name} width={size} height={size} />
-              );
-              return href ? (
-                <a
-                  key={name}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="transition-opacity hover:opacity-70"
-                >
-                  {img}
-                </a>
-              ) : (
-                <span key={name}>{img}</span>
-              );
-            })}
+            </p>
           </div>
-        </section>
-      </main>
 
-      <footer className="mt-[94px] mb-[43px] flex w-full flex-col items-center gap-8 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:items-end lg:gap-0 lg:pr-[38px] lg:pl-[51px]">
-        <div className="order-2 mb-[6px] font-mono text-[15px] font-light whitespace-nowrap text-muted lg:order-none lg:justify-self-start">
-          <p>
-            <span className="text-ink">$</span> git log -1 --oneline
-          </p>
-          <p className="flex items-end text-ink">
-            <span className="max-w-[min(40ch,calc(100vw-4rem))] truncate">{commit}</span>
-            <span
-              aria-hidden
-              className="ml-[5px] inline-block h-[20px] w-[6px] bg-ink motion-safe:animate-blink"
-            />
-          </p>
-        </div>
+          <DeckPager className="order-1 lg:order-none" />
 
-        <nav
-          aria-label="Pages"
-          className="order-1 flex h-[90px] w-[387px] max-w-full items-center rounded-[50px] border border-muted pl-[28px] text-[24px] text-muted lg:order-none"
-        >
-          1 de 4
-        </nav>
-
-        <div className="order-3 mb-[7px] flex flex-wrap items-center justify-center gap-x-[47px] gap-y-4 font-mono text-[15px] font-light lg:order-none lg:justify-self-end">
-          <p className="flex items-center text-muted">
-            made with
-            <Image
-              src="/icons/figma.png"
-              alt="Figma"
-              width={38}
-              height={28}
-              className="ml-[3px]"
-            />
-            <Image
-              src="/icons/claude.png"
-              alt="Claude"
-              width={31}
-              height={31}
-              className="ml-[1px]"
-            />
-            <Image
-              src="/icons/nextjs.png"
-              alt="Next.js"
-              width={31}
-              height={31}
-              className="ml-[12px]"
-            />
-          </p>
-          <a
-            href={SOURCE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group flex items-center gap-[13px]"
-          >
-            <span className="underline decoration-from-font [text-underline-position:from-font] group-hover:text-muted">
-              see source code
-            </span>
-            <Image
-              src="/icons/github-dark.png"
-              alt=""
-              width={33}
-              height={33}
-            />
-          </a>
-        </div>
-      </footer>
+          <div className="order-3 flex items-center gap-6 font-mono text-[11px] font-light lg:order-none lg:justify-self-end lg:text-xs">
+            <p className="flex items-center gap-1.5 text-muted">
+              made with
+              <Image
+                src="/icons/figma.png"
+                alt="Figma"
+                width={24}
+                height={18}
+              />
+              <Image
+                src="/icons/claude.png"
+                alt="Claude"
+                width={18}
+                height={18}
+              />
+              <Image
+                src="/icons/nextjs.png"
+                alt="Next.js"
+                width={18}
+                height={18}
+              />
+            </p>
+            <a
+              href={SOURCE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-2"
+            >
+              <span className="underline decoration-from-font [text-underline-position:from-font] group-hover:text-muted">
+                see source code
+              </span>
+              <Image
+                src="/icons/github-dark.png"
+                alt=""
+                width={20}
+                height={20}
+              />
+            </a>
+          </div>
+        </footer>
+      </Deck>
     </div>
   );
 }

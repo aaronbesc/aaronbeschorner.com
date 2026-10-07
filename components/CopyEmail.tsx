@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
+import MaskIcon from "./MaskIcon";
 
 export default function CopyEmail({ email }: { email: string }) {
   const [copied, setCopied] = useState(false);
@@ -12,36 +12,33 @@ export default function CopyEmail({ email }: { email: string }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      // Clipboard access can be denied; the mailto link still works.
+      // Clipboard access can be denied; the address is still visible.
     }
   }
 
   return (
-    <div className="flex h-[42px] w-[285px] max-w-full items-center justify-between rounded-[5px] border border-muted pr-[12px] pl-[18px]">
-      <a
-        href={`mailto:${email}`}
-        className="truncate text-[16px] text-muted underline decoration-from-font [text-underline-position:from-font] hover:text-ink"
-      >
-        {email}
-      </a>
-      <button
-        type="button"
-        onClick={copy}
-        aria-label={copied ? "Email copied" : "Copy email address"}
-        title={copied ? "Copied!" : "Copy email"}
-        className="shrink-0 cursor-pointer transition-opacity hover:opacity-70"
-      >
-        <Image
-          src="/icons/copy.png"
-          alt=""
-          width={24}
-          height={24}
-          className={copied ? "opacity-40" : undefined}
-        />
-      </button>
+    <button
+      type="button"
+      onClick={copy}
+      aria-label={`Copy email address ${email}`}
+      className="inline-flex h-[2.4em] cursor-pointer items-center gap-[0.6em] rounded-[0.35em] border border-muted px-[0.9em] text-muted transition-colors hover:border-ink hover:bg-ink hover:text-white focus-visible:border-ink focus-visible:bg-ink focus-visible:text-white focus-visible:outline-none"
+    >
+      <span className="grid">
+        <span
+          className={`col-start-1 row-start-1 underline decoration-from-font [text-underline-position:from-font] ${copied ? "invisible" : ""}`}
+        >
+          {email}
+        </span>
+        <span
+          className={`col-start-1 row-start-1 text-center ${copied ? "" : "invisible"}`}
+        >
+          copied!
+        </span>
+      </span>
+      <MaskIcon src="/icons/copy.png" className="size-[1.2em]" />
       <span className="sr-only" aria-live="polite">
         {copied ? "Email copied to clipboard" : ""}
       </span>
-    </div>
+    </button>
   );
 }
