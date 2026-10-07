@@ -34,7 +34,7 @@ function InlineLogo({ src, alt, size }: { src: string; alt: string; size: string
       width={56}
       height={56}
       draggable={false}
-      className={`mx-[0.12em] -my-[0.4em] inline-block align-middle ${size}`}
+      className={`mx-[0.12em] -my-[0.4em] inline-block object-contain align-middle ${size}`}
     />
   );
 }
@@ -73,7 +73,7 @@ function BioCard({ socials }: { socials: Social[] }) {
           <Nowrap>
             <span className={termB}>
               Azure ML
-              <InlineLogo src="/icons/azure-ml.svg" alt="Azure Machine Learning logo" size="size-[1.15em]" />
+              <InlineLogo src="/icons/azure-ml.png" alt="Azure Machine Learning logo" size="size-[1.15em]" />
             </span>
             .
           </Nowrap>{" "}
