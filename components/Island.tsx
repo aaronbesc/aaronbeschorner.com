@@ -342,8 +342,8 @@ function MenuItem({
       data-menu-item
       aria-current={current || undefined}
       onClick={onSelect}
-      className={`${layout} cursor-pointer outline-none hover:bg-black/5 focus-visible:bg-black/5 ${
-        current ? "bg-white/70" : ""
+      className={`${layout} cursor-pointer outline-none hover:bg-black/[0.06] focus-visible:bg-black/[0.06] ${
+        current ? "bg-black/[0.06]" : ""
       }`}
     >
       {content}
