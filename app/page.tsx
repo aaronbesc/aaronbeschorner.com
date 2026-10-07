@@ -2,35 +2,18 @@ import Image from "next/image";
 import CopyEmail from "@/components/CopyEmail";
 import { Deck, DeckCards, DeckPager } from "@/components/Deck";
 import GoGators from "@/components/GoGators";
+import Island from "@/components/Island";
 import MadridClock from "@/components/MadridClock";
-import MaskIcon from "@/components/MaskIcon";
+import {
+  GithubPreview,
+  LinkedinPreview,
+  XPreview,
+} from "@/components/Previews";
+import SocialLinks, { type Social } from "@/components/SocialLinks";
 import { getLatestCommit } from "@/lib/commit";
+import { getContributions } from "@/lib/github";
+import { PROFILE } from "@/lib/profile";
 import { getMadridWeather } from "@/lib/weather";
-
-const EMAIL = "aaronbeschorner@gmail.com";
-const SOURCE_URL = "https://github.com/aaronbesc/my_portfolio";
-
-const socials = [
-  {
-    name: "LinkedIn",
-    href: "https://www.linkedin.com/in/aaron-beschorner/",
-    icon: "/icons/linkedin.png",
-    iconClass: "size-[1.6em] gators-icon gators-alt",
-  },
-  {
-    name: "GitHub",
-    href: "https://github.com/aaronbesc",
-    icon: "/icons/github.png",
-    iconClass: "size-[1.6em] gators-icon",
-  },
-  // TODO: add X profile URL.
-  {
-    name: "X",
-    href: null,
-    icon: "/icons/x.png",
-    iconClass: "size-[1.4em] gators-icon gators-alt",
-  },
-];
 
 const term =
   "underline decoration-dotted decoration-from-font [text-decoration-skip-ink:none] [text-underline-position:from-font]";
@@ -40,7 +23,7 @@ const termB = `${term} gators-text gators-alt`;
 
 // Sizes inside cards use cqi (percent of the card's width), so everything
 // scales together with the card.
-function BioCard() {
+function BioCard({ socials }: { socials: Social[] }) {
   return (
     <div className="flex size-full flex-col justify-between p-[6cqi] md:px-[12cqi] md:py-[7cqi]">
       <p className="text-[5.4cqi] text-black md:text-[3cqi]">
@@ -62,27 +45,8 @@ function BioCard() {
       </p>
 
       <div className="flex flex-wrap items-center justify-center gap-[1em] text-[3.4cqi] md:text-[1.9cqi]">
-        <CopyEmail email={EMAIL} />
-        {socials.map(({ name, href, icon, iconClass }) => {
-          const glyph = <MaskIcon src={icon} className={iconClass} />;
-          const color = "text-muted transition-colors hover:text-ink";
-          return href ? (
-            <a
-              key={name}
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={name}
-              className={`${color} flex focus-visible:text-ink`}
-            >
-              {glyph}
-            </a>
-          ) : (
-            <span key={name} role="img" aria-label={name} className={`${color} flex`}>
-              {glyph}
-            </span>
-          );
-        })}
+        <CopyEmail email={PROFILE.email} />
+        <SocialLinks items={socials} />
       </div>
     </div>
   );
@@ -98,10 +62,36 @@ function ComingSoonCard() {
 }
 
 export default async function Home() {
-  const weather = await getMadridWeather();
+  const [weather, contributions] = await Promise.all([
+    getMadridWeather(),
+    getContributions(PROFILE.github),
+  ]);
   const commit = getLatestCommit();
+  const socials: Social[] = [
+    {
+      name: "LinkedIn",
+      href: PROFILE.linkedin,
+      icon: "/icons/linkedin.png",
+      iconClass: "size-[1.6em] gators-icon gators-alt",
+      preview: <LinkedinPreview />,
+    },
+    {
+      name: "GitHub",
+      href: `https://github.com/${PROFILE.github}`,
+      icon: "/icons/github.png",
+      iconClass: "size-[1.6em] gators-icon",
+      preview: <GithubPreview contributions={contributions} />,
+    },
+    {
+      name: "X",
+      href: PROFILE.x && `https://x.com/${PROFILE.x}`,
+      icon: "/icons/x.png",
+      iconClass: "size-[1.4em] gators-icon gators-alt",
+      preview: <XPreview />,
+    },
+  ];
   const cards = [
-    <BioCard key="bio" />,
+    <BioCard key="bio" socials={socials} />,
     <ComingSoonCard key="2" />,
     <ComingSoonCard key="3" />,
     <ComingSoonCard key="4" />,
@@ -109,40 +99,11 @@ export default async function Home() {
 
   return (
     <div className="relative flex h-dvh min-h-[560px] flex-col items-center px-4">
-      <header className="mt-3 flex shrink-0 items-center gap-2.5 rounded-full bg-pill py-1.5 pr-5 pl-1.5 lg:mt-5">
-        <Image
-          src="/images/avatar.png"
-          alt="Aaron Beschorner"
-          width={36}
-          height={36}
-          priority
-          className="size-8 rounded-full md:size-9"
-        />
-        <div className="leading-tight">
-          <h1 className="text-[14px] font-medium md:text-[15px]">
-            Aaron Beschorner
-          </h1>
-          <p className="flex items-center gap-1 text-[11px] font-medium text-muted md:text-[12px]">
-            <Image
-              src="/icons/location.svg"
-              alt=""
-              width={12}
-              height={15}
-              className="h-[1em] w-auto"
-            />
-            Madrid, Spain
-          </p>
-        </div>
-        <kbd className="relative ml-3 hidden h-[26px] w-[48px] items-center justify-center font-sans text-[11px] font-medium text-muted md:flex">
-          <Image
-            src="/icons/kbd-bg.svg"
-            alt=""
-            width={48}
-            height={26}
-            className="absolute inset-0"
-          />
-          <span className="relative">Ctrl K</span>
-        </kbd>
+      <h1 className="sr-only">{PROFILE.name}</h1>
+
+      {/* Holds the closed island's place; the open menu overlays the page. */}
+      <header className="relative z-[60] mt-3 h-11 w-[13.5rem] shrink-0 md:h-12 md:w-[17rem] lg:mt-5">
+        <Island />
       </header>
 
       {/* On small screens this region and the footer share the leftover
@@ -200,7 +161,7 @@ export default async function Home() {
               />
             </p>
             <a
-              href={SOURCE_URL}
+              href={PROFILE.source}
               target="_blank"
               rel="noopener noreferrer"
               className="group flex items-center gap-2"
