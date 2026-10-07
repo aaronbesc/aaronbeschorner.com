@@ -1,22 +1,16 @@
-import createMDX from "@next/mdx";
 import type { NextConfig } from "next";
 
-const withMDX = createMDX({
-  extension: new RegExp("\\.mdx?$"),
-  options: {
-    // REMOVED all remark plugins for stability
-    remarkPlugins: [],
-    rehypePlugins: [],
-  },
-});
+// Old routes from the previous site. Temporary (307) so nothing gets cached
+// permanently while the new site is being built.
+const legacyRoutes = ["/about", "/projects", "/contact", "/blog", "/mdx-test"];
 
 const nextConfig: NextConfig = {
-  experimental: {
-    mdxRs: true,
+  async redirects() {
+    return legacyRoutes.flatMap((route) => [
+      { source: route, destination: "/", permanent: false },
+      { source: `${route}/:path*`, destination: "/", permanent: false },
+    ]);
   },
-  pageExtensions: ["js", "jsx", "ts", "tsx", "md", "mdx"],
 };
 
-export default withMDX(nextConfig);
-
-
+export default nextConfig;
