@@ -34,7 +34,7 @@ const socials = [
 
 const term =
   "underline decoration-dotted decoration-from-font [text-decoration-skip-ink:none] [text-underline-position:from-font]";
-// Underlined terms light up during the Go Gators party, alternating phase.
+// During the Go Gators party, neighboring terms take opposite UF colors.
 const termA = `${term} gators-text`;
 const termB = `${term} gators-text gators-alt`;
 
