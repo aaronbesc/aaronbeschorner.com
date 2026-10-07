@@ -210,13 +210,17 @@ export function DeckCards({
   return (
     <div
       ref={area}
-      className="flex size-full items-center justify-center [container-type:size]"
+      className="flex items-center justify-center lg:size-full lg:[container-type:size]"
     >
+      {/* --w is the card width: as wide as possible while the whole stack
+          (card plus the layers peeking 10.2% below) fits on screen. Below lg
+          that leaves ~260px for the header and footer; on lg the card fills
+          whatever height <main> gets. */}
       <div
         role="region"
         aria-roledescription="carousel"
         aria-label={label}
-        className="relative mb-[calc(var(--w)*0.102)] aspect-square w-(--w) touch-none select-none [--w:min(100cqw,26rem,calc(100cqh/1.11))] md:mb-[calc(var(--w)/1.7*0.102)] md:aspect-[1.7] md:[--w:min(100cqw,46rem,calc(100cqh*1.7/1.11))]"
+        className="relative mb-[calc(var(--w)*0.102)] aspect-square w-(--w) touch-none select-none [--w:min(100vw_-_2rem,26rem,calc((100dvh_-_260px)/1.11))] md:mb-[calc(var(--w)/1.7*0.102)] md:aspect-[1.7] md:[--w:min(100vw_-_2rem,46rem,calc((100dvh_-_260px)*1.7/1.11))] lg:[--w:min(100cqw,46rem,calc(100cqh*1.7/1.11))]"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}

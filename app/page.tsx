@@ -100,11 +100,7 @@ export default async function Home() {
 
   return (
     <div className="relative flex h-dvh min-h-[560px] flex-col items-center px-4">
-      <p className="mt-3 font-mono text-[11px] font-light lg:absolute lg:top-5 lg:right-6 lg:mt-0 lg:text-xs">
-        <MadridClock /> in Madrid{weather && `, ${weather}`}
-      </p>
-
-      <header className="mt-2 flex shrink-0 items-center gap-2.5 rounded-full bg-pill py-1.5 pr-5 pl-1.5 lg:mt-5">
+      <header className="mt-3 flex shrink-0 items-center gap-2.5 rounded-full bg-pill py-1.5 pr-5 pl-1.5 lg:mt-5">
         <Image
           src="/images/avatar.png"
           alt="Aaron Beschorner"
@@ -140,13 +136,21 @@ export default async function Home() {
         </kbd>
       </header>
 
+      {/* On small screens this region and the footer share the leftover
+          height equally, centering the weather between the island and cards. */}
+      <div className="flex flex-auto items-center py-3 lg:absolute lg:top-5 lg:right-6 lg:py-0">
+        <p className="font-mono text-[11px] font-light lg:text-xs">
+          <MadridClock /> in Madrid{weather && `, ${weather}`}
+        </p>
+      </div>
+
       <Deck count={cards.length}>
-        <main className="min-h-0 w-full flex-1 py-4 lg:py-6">
+        <main className="w-full lg:min-h-0 lg:flex-1 lg:py-6">
           <DeckCards cards={cards} label="About Aaron" />
         </main>
 
-        <footer className="flex w-full shrink-0 flex-col items-center gap-3 pb-4 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:gap-6 lg:px-2 lg:pb-5">
-          <div className="order-2 font-mono text-[11px] font-light whitespace-nowrap text-muted lg:order-none lg:justify-self-start lg:text-xs">
+        <footer className="flex w-full flex-auto flex-col items-center pt-3 pb-4 lg:grid lg:flex-none lg:pt-0 lg:grid-cols-[1fr_auto_1fr] lg:items-center lg:gap-6 lg:px-2 lg:pb-5">
+          <div className="order-2 mt-3 font-mono text-[11px] font-light whitespace-nowrap text-muted lg:order-none lg:mt-0 lg:justify-self-start lg:text-xs">
             <p>
               <span className="text-ink">$</span> git log -1 --oneline
             </p>
@@ -161,9 +165,10 @@ export default async function Home() {
             </p>
           </div>
 
-          <DeckPager className="order-1 lg:order-none" />
+          {/* Auto margins center the pager between the cards and the commit. */}
+          <DeckPager className="order-1 my-auto lg:order-none lg:my-0" />
 
-          <div className="order-3 flex items-center gap-6 font-mono text-[11px] font-light lg:order-none lg:justify-self-end lg:text-xs">
+          <div className="order-3 mt-5 flex lg:mt-0 items-center gap-6 font-mono text-[11px] font-light lg:order-none lg:justify-self-end lg:text-xs">
             <p className="flex items-center gap-1.5 text-muted">
               made with
               <Image
