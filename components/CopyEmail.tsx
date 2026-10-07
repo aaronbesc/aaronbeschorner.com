@@ -21,7 +21,7 @@ export default function CopyEmail({ email }: { email: string }) {
       type="button"
       onClick={copy}
       aria-label={`Copy email address ${email}`}
-      className="inline-flex h-[2.4em] cursor-pointer items-center gap-[0.6em] rounded-[0.35em] border border-muted px-[0.9em] text-muted transition-colors hover:border-ink hover:bg-ink hover:text-white focus-visible:border-ink focus-visible:bg-ink focus-visible:text-white focus-visible:outline-none gators-button"
+      className="inline-flex h-[2.4em] cursor-pointer items-center gap-[0.6em] rounded-[0.35em] border border-muted px-[0.9em] text-muted transition-colors hover:border-ink hover:bg-ink hover:text-surface focus-visible:border-ink focus-visible:bg-ink focus-visible:text-surface focus-visible:outline-none gators-button"
     >
       <span className="grid">
         <span

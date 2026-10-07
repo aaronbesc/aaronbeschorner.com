@@ -107,7 +107,7 @@ export function Deck({
 const LAYERS = [
   {
     transform: "translateY(5.6%) scaleX(0.9)",
-    bg: "bg-ink gators-layer",
+    bg: "bg-stack gators-layer",
     z: 30,
   },
   {
@@ -248,7 +248,7 @@ export function DeckCards({
           const front = depth === 0 && i !== entering;
 
           let transform = `translateY(${drag}px)`;
-          let bg = "bg-white";
+          let bg = "bg-surface";
           let z = 40;
           let opacity = 1;
           if (flying) {

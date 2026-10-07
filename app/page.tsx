@@ -26,7 +26,7 @@ const termB = `${term} gators-text gators-alt`;
 function BioCard({ socials }: { socials: Social[] }) {
   return (
     <div className="flex size-full flex-col justify-between p-[6cqi] md:px-[12cqi] md:py-[7cqi]">
-      <p className="text-[5.4cqi] text-black md:text-[3cqi]">
+      <p className="text-[5.4cqi] text-fg md:text-[3cqi]">
         I’m a <span className={termA}>Data Engineer</span> at Intempo. I
         graduated from the{" "}
         <GoGators className={termB}>
@@ -159,6 +159,7 @@ export default async function Home() {
                 alt="Next.js"
                 width={18}
                 height={18}
+                className="dark:invert"
               />
             </p>
             <a
@@ -175,6 +176,7 @@ export default async function Home() {
                 alt=""
                 width={20}
                 height={20}
+                className="dark:invert"
               />
             </a>
           </div>

@@ -21,6 +21,7 @@ import {
   type SVGProps,
 } from "react";
 import { PROFILE } from "@/lib/profile";
+import MaskIcon from "./MaskIcon";
 import {
   applyTheme,
   getTheme,
@@ -223,23 +224,18 @@ export default function Island() {
               {PROFILE.name}
             </span>
             <span className="flex items-center gap-1 text-[11px] font-medium text-muted-strong md:text-[12px]">
-              <Image
+              <MaskIcon
                 src="/icons/location.svg"
-                alt=""
-                width={12}
-                height={15}
-                className="h-[1em] w-auto"
+                className="h-[1em] w-[0.8em] text-muted"
               />
               {PROFILE.location}
             </span>
           </span>
           <kbd className="relative ml-auto hidden h-[26px] w-[48px] shrink-0 items-center justify-center font-sans text-[11px] font-medium text-muted-strong md:flex">
-            <Image
+            <MaskIcon
               src="/icons/kbd-bg.svg"
-              alt=""
-              width={48}
-              height={26}
-              className="absolute inset-0"
+              stretch
+              className="absolute inset-0 text-key"
             />
             <span
               className={`relative transition-opacity ${isMac === null ? "opacity-0" : ""}`}
@@ -276,7 +272,7 @@ export default function Island() {
             >
               {sections.map((section) => (
                 <div key={section.label}>
-                  <hr className="-mx-1.5 border-black/[0.06]" />
+                  <hr className="-mx-1.5 border-ink/[0.06]" />
                   <p className="px-2 pt-2 pb-1 text-[11px] text-muted-strong">
                     {section.label}
                   </p>
@@ -342,8 +338,8 @@ function MenuItem({
       data-menu-item
       aria-current={current || undefined}
       onClick={onSelect}
-      className={`${layout} cursor-pointer outline-none hover:bg-black/5 focus-visible:bg-black/5 ${
-        current ? "bg-white/70" : ""
+      className={`${layout} cursor-pointer outline-none hover:bg-ink/5 focus-visible:bg-ink/5 ${
+        current ? "bg-chip" : ""
       }`}
     >
       {content}

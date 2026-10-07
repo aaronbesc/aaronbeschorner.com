@@ -85,7 +85,7 @@ export default function SocialLinks({ items }: { items: Social[] }) {
         aria-hidden
         inert={!open}
         style={{ left }}
-        className={`absolute bottom-[calc(100%+0.75em)] z-10 w-72 -translate-x-1/2 overflow-hidden rounded-2xl bg-white text-left text-[13px] leading-normal text-ink shadow-[0_16px_40px_-12px_rgb(0_0_0/0.25)] duration-300 ease-out motion-reduce:transition-none ${
+        className={`absolute bottom-[calc(100%+0.75em)] z-10 w-72 -translate-x-1/2 overflow-hidden rounded-2xl bg-surface text-left text-[13px] leading-normal text-ink shadow-[0_16px_40px_-12px_rgb(0_0_0/0.25)] dark:ring-1 dark:ring-ink/10 duration-300 ease-out motion-reduce:transition-none ${
           instant ? "transition-[opacity,scale]" : "transition-[left,height,opacity,scale]"
         } ${open ? "" : "pointer-events-none scale-95 opacity-0"}`}
       >

@@ -1,14 +1,23 @@
 @import "tailwindcss";
 
+/* Dark mode follows <html data-theme>, set before first paint in layout.tsx. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Light palette. The dark one below redefines the same tokens. */
 @theme {
   --color-canvas: #f2f2f2;
+  --color-surface: #ffffff; /* cards and previews */
   --color-pill: #e8eaeb;
+  --color-key: #d9d9d9; /* keycap in the island */
+  --color-chip: rgb(255 255 255 / 0.7); /* current item in the island menu */
+  --color-fg: #000000; /* the bio */
   --color-ink: #171717;
   --color-muted: #928c88;
   /* Darker muted for small text on the island, so it stays readable over
      the glass (4.5:1 or better). */
   --color-muted-strong: #5b5652;
   --color-accent: #a259ff;
+  --color-stack: #171717; /* the card right behind the front one */
 
   /* Official University of Florida brand colors (brand.ufl.edu). */
   --color-gator-orange: #fa4616; /* PMS 172 */
@@ -53,6 +62,35 @@
   }
 }
 
+:root {
+  color-scheme: light;
+  /* Island glass: over the canvas these composite to exactly the pill color. */
+  --glass-tint: rgb(228 231 232 / 0.7);
+  --glass-tint-reduced: rgb(229 231 232 / 0.8);
+}
+
+/*
+ * Dark palette: the light one mirrored. The canvas is the light ink and the
+ * bio is the light canvas; raised surfaces (cards, pill) sit a step lighter
+ * than the canvas. Text stays below pure white so it isn't harsh, and the
+ * warm gray, purple accent and UF colors are shared by both themes.
+ */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-canvas: #171717;
+  --color-surface: #202020;
+  --color-pill: #26282a;
+  --color-key: #36393b;
+  --color-chip: rgb(255 255 255 / 0.08);
+  --color-fg: #f2f2f2;
+  --color-ink: #ececec;
+  --color-muted-strong: #aea8a4;
+  /* Softer than the dark ink, so the stack doesn't glare. */
+  --color-stack: #b5b5b5;
+  --glass-tint: rgb(44 47 50 / 0.7);
+  --glass-tint-reduced: rgb(42 44 47 / 0.8);
+}
+
 body {
   background: var(--color-canvas);
   color: var(--color-ink);
@@ -65,7 +103,7 @@ body {
 
 /*
  * Glass (the island). A translucent tint chosen so that over the page
- * background it shows exactly the pill color, #e8eaeb, while anything that
+ * background it shows exactly the pill color, while anything that
  * passes underneath shows through, softened by a light blur so it stays
  * recognizable without competing with the text on top. With "reduce
  * transparency" on it is a bit more opaque; without blur support, solid.
@@ -74,12 +112,12 @@ body {
   background-color: var(--color-pill);
 
   @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
-    background-color: rgb(228 231 232 / 0.7);
+    background-color: var(--glass-tint);
     -webkit-backdrop-filter: blur(6px) saturate(150%);
     backdrop-filter: blur(6px) saturate(150%);
 
     @media (prefers-reduced-transparency: reduce) {
-      background-color: rgb(229 231 232 / 0.8);
+      background-color: var(--glass-tint-reduced);
     }
   }
 }

@@ -7,7 +7,7 @@ import { PROFILE } from "@/lib/profile";
 // but in this site's palette, with the photos used on each network.
 
 const LEVELS = [
-  "bg-black/[0.06]",
+  "bg-ink/[0.06]",
   "bg-accent/30",
   "bg-accent/55",
   "bg-accent/80",
@@ -42,7 +42,7 @@ function Action({ href, children }: { href: string; children: ReactNode }) {
       target="_blank"
       rel="noopener noreferrer"
       tabIndex={-1}
-      className="shrink-0 rounded-full bg-ink px-3 py-1 text-[12px] text-white transition-colors hover:bg-ink/80"
+      className="shrink-0 rounded-full bg-ink px-3 py-1 text-[12px] text-surface transition-colors hover:bg-ink/80"
     >
       {children}
     </a>
@@ -72,7 +72,7 @@ function ProfileCard({
         <Image src={banner} alt="" fill sizes="18rem" className="object-cover" />
       </div>
       <div className="px-3 pb-3">
-        <Avatar src={avatar} size={52} className="relative -mt-7 ring-2 ring-white" />
+        <Avatar src={avatar} size={52} className="relative -mt-7 ring-2 ring-surface" />
         <p className="mt-1.5 font-medium">{title}</p>
         <div className="flex items-end justify-between gap-3">
           <p className="text-[12px] leading-snug text-muted">{lines}</p>
