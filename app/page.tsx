@@ -82,7 +82,7 @@ function BioCard({ socials }: { socials: Social[] }) {
             SoundCloud
             <InlineLogo src="/icons/soundcloud.svg" alt="SoundCloud logo" size="size-[1.5em]" />
           </Nowrap>{" "}
-          set on loop or a Fashion Week gallery open in another tab.
+          set on loop or a fashion week runway open in another tab.
         </p>
       </div>
 
