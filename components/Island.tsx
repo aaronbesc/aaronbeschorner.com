@@ -186,9 +186,9 @@ export default function Island() {
       onPointerLeave={(e) => {
         if (e.pointerType === "mouse" && !settling.current) setOpen(false);
       }}
-      className={`absolute top-0 left-1/2 -translate-x-1/2 rounded-[22px] bg-pill transition-[width,box-shadow] duration-400 md:rounded-[24px] ${EASE} motion-reduce:transition-none ${
+      className={`absolute top-0 left-1/2 -translate-x-1/2 glass rounded-[22px] transition-[width] duration-400 md:rounded-[24px] ${EASE} motion-reduce:transition-none ${
         open
-          ? "w-[min(24rem,calc(100vw-2rem))] shadow-[0_24px_48px_-20px_rgb(0_0_0/0.3)]"
+          ? "w-[min(24rem,calc(100vw-2rem))]"
           : "w-full"
       }`}
     >
@@ -222,7 +222,7 @@ export default function Island() {
             <span className="text-[14px] font-medium md:text-[15px]">
               {PROFILE.name}
             </span>
-            <span className="flex items-center gap-1 text-[11px] font-medium text-muted md:text-[12px]">
+            <span className="flex items-center gap-1 text-[11px] font-medium text-muted-strong md:text-[12px]">
               <Image
                 src="/icons/location.svg"
                 alt=""
@@ -233,7 +233,7 @@ export default function Island() {
               {PROFILE.location}
             </span>
           </span>
-          <kbd className="relative ml-auto hidden h-[26px] w-[48px] shrink-0 items-center justify-center font-sans text-[11px] font-medium text-muted md:flex">
+          <kbd className="relative ml-auto hidden h-[26px] w-[48px] shrink-0 items-center justify-center font-sans text-[11px] font-medium text-muted-strong md:flex">
             <Image
               src="/icons/kbd-bg.svg"
               alt=""
@@ -247,7 +247,7 @@ export default function Island() {
               {isMac ? "⌘K" : "Ctrl K"}
             </span>
           </kbd>
-          <span aria-hidden className="ml-auto text-muted md:hidden">
+          <span aria-hidden className="ml-auto text-muted-strong md:hidden">
             {open ? (
               <XMarkIcon className="size-4" />
             ) : (
@@ -277,7 +277,7 @@ export default function Island() {
               {sections.map((section) => (
                 <div key={section.label}>
                   <hr className="-mx-1.5 border-black/[0.06]" />
-                  <p className="px-2 pt-2 pb-1 text-[11px] text-muted">
+                  <p className="px-2 pt-2 pb-1 text-[11px] text-muted-strong">
                     {section.label}
                   </p>
                   <div
