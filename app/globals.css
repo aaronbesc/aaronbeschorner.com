@@ -1,8 +1,5 @@
 @import "tailwindcss";
 
-/* Styles that apply only while the "Go Gators" chant plays (see GoGators). */
-@custom-variant party (&:where([data-party] *));
-
 @theme {
   --color-canvas: #f2f2f2;
   --color-pill: #e8eaeb;
@@ -17,64 +14,18 @@
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-cascadia), ui-monospace, monospace;
 
-  --animate-blink: blink 1.1s steps(1, end) infinite;
-
-  /* Each party element flips between orange and blue every half second. The
-     -alt versions run half a beat behind, so neighbors show opposite colors. */
-  --animate-gators-bg: gators-bg 1s steps(1) infinite;
-  --animate-gators-bg-alt: gators-bg 1s steps(1) -0.5s infinite;
-  --animate-gators-text: gators-text 1s steps(1) infinite;
-  --animate-gators-text-alt: gators-text 1s steps(1) -0.5s infinite;
-  --animate-gators-outline: gators-outline 1s steps(1) infinite;
+  /* Terminal cursor: holds, then fades out and back in. */
+  --animate-blink: blink 1.1s ease-in-out infinite;
 
   @keyframes blink {
-    50% {
+    0%,
+    35% {
+      opacity: 1;
+    }
+    50%,
+    85% {
       opacity: 0;
     }
-  }
-
-  @keyframes gators-bg {
-    0% {
-      background-color: var(--color-gator-orange);
-    }
-    50%,
-    100% {
-      background-color: var(--color-gator-blue);
-    }
-  }
-
-  @keyframes gators-text {
-    0% {
-      color: var(--color-gator-orange);
-    }
-    50%,
-    100% {
-      color: var(--color-gator-blue);
-    }
-  }
-
-  @keyframes gators-outline {
-    0% {
-      color: var(--color-gator-orange);
-      border-color: var(--color-gator-orange);
-    }
-    50%,
-    100% {
-      color: var(--color-gator-blue);
-      border-color: var(--color-gator-blue);
-    }
-  }
-}
-
-/* No flashing for people who ask for less motion: the party colors hold
-   still instead (paused at 0s shows orange, at -0.5s shows blue). */
-@media (prefers-reduced-motion: reduce) {
-  :root {
-    --animate-gators-bg: gators-bg 1s paused;
-    --animate-gators-bg-alt: gators-bg 1s -0.5s paused;
-    --animate-gators-text: gators-text 1s paused;
-    --animate-gators-text-alt: gators-text 1s -0.5s paused;
-    --animate-gators-outline: gators-outline 1s paused;
   }
 }
 
@@ -86,4 +37,122 @@ body {
 ::selection {
   background: var(--color-accent);
   color: #fff;
+}
+
+/*
+ * Go Gators party. While the chant plays (see GoGators), <html> has a
+ * data-party attribute and a --beat property that follows the chant's
+ * loudness from 0 to 1. Party elements show an orange-and-blue gradient that
+ * flows sideways; --beat drives their glow and swell. gators-alt runs half a
+ * cycle behind so neighbors show opposite colors.
+ */
+:root {
+  --gators-gradient: linear-gradient(
+    90deg,
+    var(--color-gator-orange) 0%,
+    var(--color-gator-orange) 12%,
+    var(--color-gator-blue) 38%,
+    var(--color-gator-blue) 62%,
+    var(--color-gator-orange) 88%,
+    var(--color-gator-orange) 100%
+  );
+}
+
+/* The gradient is two element-widths wide; moving it by exactly one tile
+   (200% at this size) loops seamlessly. */
+@keyframes gators-flow {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 200% 50%;
+  }
+}
+
+@utility gators-alt {
+  --gators-delay: -0.8s;
+  --gators-accent: 0 33 165;
+}
+
+@utility gators-text {
+  [data-party] & {
+    background-image: var(--gators-gradient);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    text-decoration-color: rgb(var(--gators-accent, 250 70 22));
+    filter: drop-shadow(
+      0 0 calc(var(--beat, 0) * 6px) rgb(var(--gators-accent, 250 70 22) / 0.45)
+    );
+    animation: gators-flow 1.6s linear infinite;
+    animation-delay: var(--gators-delay, 0s);
+  }
+}
+
+/* For MaskIcon: the gradient fills the icon's shape. */
+@utility gators-icon {
+  [data-party] & {
+    background-image: var(--gators-gradient);
+    background-size: 200% 100%;
+    scale: calc(1 + var(--beat, 0) * 0.2);
+    animation: gators-flow 1.6s linear infinite;
+    animation-delay: var(--gators-delay, 0s);
+  }
+}
+
+@utility gators-button {
+  [data-party] & {
+    border-color: transparent;
+    color: #fff;
+    background-image: var(--gators-gradient);
+    background-size: 200% 100%;
+    box-shadow: 0 0 calc(var(--beat, 0) * 18px)
+      rgb(var(--gators-accent, 250 70 22) / 0.55);
+    animation: gators-flow 1.6s linear infinite;
+    animation-delay: var(--gators-delay, 0s);
+  }
+}
+
+/* The cards behind the front one: the gradient fades in over their color,
+   and they glow and swell with the chant. */
+@utility gators-layer {
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-image: var(--gators-gradient);
+    background-size: 200% 100%;
+    opacity: 0;
+    transition: opacity 400ms ease;
+  }
+
+  [data-party] & {
+    scale: calc(1 + var(--beat, 0) * 0.025);
+    box-shadow: 0 calc(var(--beat, 0) * 10px) calc(var(--beat, 0) * 48px)
+      rgb(var(--gators-accent, 250 70 22) / calc(var(--beat, 0) * 0.6));
+  }
+
+  [data-party] &::before {
+    opacity: 1;
+    animation: gators-flow 1.6s linear infinite;
+    animation-delay: var(--gators-delay, 0s);
+  }
+}
+
+/* For people who ask for less motion, the party colors hold still. */
+@media (prefers-reduced-motion: reduce) {
+  [data-party] .gators-text,
+  [data-party] .gators-icon,
+  [data-party] .gators-button,
+  [data-party] .gators-layer::before {
+    animation: none;
+  }
+
+  [data-party] .gators-alt,
+  [data-party] .gators-alt::before {
+    background-position: 100% 50%;
+  }
 }

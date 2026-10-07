@@ -15,31 +15,28 @@ const socials = [
     name: "LinkedIn",
     href: "https://www.linkedin.com/in/aaron-beschorner/",
     icon: "/icons/linkedin.png",
-    size: "size-[1.6em]",
-    party: "party:animate-gators-text-alt",
+    iconClass: "size-[1.6em] gators-icon gators-alt",
   },
   {
     name: "GitHub",
     href: "https://github.com/aaronbesc",
     icon: "/icons/github.png",
-    size: "size-[1.6em]",
-    party: "party:animate-gators-text",
+    iconClass: "size-[1.6em] gators-icon",
   },
   // TODO: add X profile URL.
   {
     name: "X",
     href: null,
     icon: "/icons/x.png",
-    size: "size-[1.4em]",
-    party: "party:animate-gators-text-alt",
+    iconClass: "size-[1.4em] gators-icon gators-alt",
   },
 ];
 
 const term =
   "underline decoration-dotted decoration-from-font [text-decoration-skip-ink:none] [text-underline-position:from-font]";
-// Underlined terms alternate colors during the Go Gators party.
-const termA = `${term} party:animate-gators-text`;
-const termB = `${term} party:animate-gators-text-alt`;
+// Underlined terms light up during the Go Gators party, alternating phase.
+const termA = `${term} gators-text`;
+const termB = `${term} gators-text gators-alt`;
 
 // Sizes inside cards use cqi (percent of the card's width), so everything
 // scales together with the card.
@@ -66,9 +63,9 @@ function BioCard() {
 
       <div className="flex flex-wrap items-center justify-center gap-[1em] text-[3.4cqi] md:text-[1.9cqi]">
         <CopyEmail email={EMAIL} />
-        {socials.map(({ name, href, icon, size, party }) => {
-          const glyph = <MaskIcon src={icon} className={size} />;
-          const color = `text-muted transition-colors hover:text-ink ${party}`;
+        {socials.map(({ name, href, icon, iconClass }) => {
+          const glyph = <MaskIcon src={icon} className={iconClass} />;
+          const color = "text-muted transition-colors hover:text-ink";
           return href ? (
             <a
               key={name}

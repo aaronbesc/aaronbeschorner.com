@@ -103,16 +103,16 @@ export function Deck({
 
 // Resting pose of the cards behind the front one, from the Figma design:
 // each layer is narrower, peeks out further below, and has its own color.
-// During the Go Gators party they flash orange and blue, out of step.
+// During the Go Gators party they light up in orange and blue (gators-layer).
 const LAYERS = [
   {
     transform: "translateY(5.6%) scaleX(0.9)",
-    bg: "bg-ink party:animate-gators-bg",
+    bg: "bg-ink gators-layer",
     z: 30,
   },
   {
     transform: "translateY(10.2%) scaleX(0.808)",
-    bg: "bg-accent party:animate-gators-bg-alt",
+    bg: "bg-accent gators-layer gators-alt",
     z: 20,
   },
 ];
