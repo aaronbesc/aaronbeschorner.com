@@ -64,7 +64,7 @@ function BioCard({ socials }: { socials: Social[] }) {
           minor in <span className={termB}>Electrical Engineering</span>.
         </p>
         <p>
-          Most of my week lives inside a data pipeline in{" "}
+          I spend most of my week inside a data pipeline in{" "}
           <Nowrap className={termA}>
             Fabric
             <InlineLogo src="/icons/fabric.svg" alt="Microsoft Fabric logo" size="size-[1.15em]" />
