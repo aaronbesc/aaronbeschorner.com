@@ -4,7 +4,7 @@ import type { Contributions } from "@/lib/github";
 import { PROFILE } from "@/lib/profile";
 
 // Preview cards for SocialLinks, styled after each network's profile card
-// but in this site's palette.
+// but in this site's palette, with the photos used on each network.
 
 const LEVELS = [
   "bg-black/[0.06]",
@@ -14,14 +14,23 @@ const LEVELS = [
   "bg-accent",
 ];
 
-function Avatar({ size, className = "" }: { size: number; className?: string }) {
+function Avatar({
+  src,
+  size,
+  className = "",
+}: {
+  src: string;
+  size: number;
+  className?: string;
+}) {
   return (
     <Image
-      src="/images/avatar.png"
+      src={src}
       alt=""
       width={size}
       height={size}
-      className={`shrink-0 rounded-full ${className}`}
+      className={`shrink-0 rounded-full object-cover ${className}`}
+      style={{ width: size, height: size }}
     />
   );
 }
@@ -43,20 +52,27 @@ function Action({ href, children }: { href: string; children: ReactNode }) {
 /** A banner with the avatar overlapping it, like LinkedIn and X profiles. */
 function ProfileCard({
   banner,
+  bannerShape,
+  avatar,
   title,
   lines,
   action,
 }: {
   banner: string;
+  /** The banner's aspect ratio on its network, e.g. aspect-[4/1]. */
+  bannerShape: string;
+  avatar: string;
   title: string;
   lines: ReactNode;
-  action?: ReactNode;
+  action: ReactNode;
 }) {
   return (
     <div>
-      <div className={`h-12 ${banner}`} />
+      <div className={`relative ${bannerShape}`}>
+        <Image src={banner} alt="" fill sizes="18rem" className="object-cover" />
+      </div>
       <div className="px-3 pb-3">
-        <Avatar size={48} className="-mt-6 ring-2 ring-white" />
+        <Avatar src={avatar} size={52} className="relative -mt-7 ring-2 ring-white" />
         <p className="mt-1.5 font-medium">{title}</p>
         <div className="flex items-end justify-between gap-3">
           <p className="text-[12px] leading-snug text-muted">{lines}</p>
@@ -71,7 +87,7 @@ export function GithubPreview({ contributions }: { contributions: Contributions 
   return (
     <div className="flex flex-col gap-3 p-3">
       <div className="flex items-center gap-2.5">
-        <Avatar size={32} />
+        <Avatar src="/images/github/profile.jpg" size={32} />
         <div className="leading-tight">
           <p className="font-medium">{PROFILE.github}</p>
           <p className="font-mono text-[11px] font-light text-muted">
@@ -103,7 +119,9 @@ export function GithubPreview({ contributions }: { contributions: Contributions 
 export function LinkedinPreview() {
   return (
     <ProfileCard
-      banner="bg-ink"
+      banner="/images/linkedin/background.jpg"
+      bannerShape="aspect-[4/1]"
+      avatar="/images/linkedin/profile.jpg"
       title={PROFILE.name}
       lines={
         <>
@@ -120,12 +138,18 @@ export function LinkedinPreview() {
 export function XPreview() {
   return (
     <ProfileCard
-      banner="bg-accent"
+      banner="/images/x/background.jpg"
+      bannerShape="aspect-[3/1]"
+      avatar="/images/x/profile.jpg"
       title={PROFILE.name}
-      lines={PROFILE.x ? `@${PROFILE.x}` : "Coming soon to X"}
-      action={
-        PROFILE.x && <Action href={`https://x.com/${PROFILE.x}`}>Follow</Action>
+      lines={
+        <>
+          @{PROFILE.x}
+          <br />
+          {PROFILE.headline}
+        </>
       }
+      action={<Action href={`https://x.com/${PROFILE.x}`}>Follow</Action>}
     />
   );
 }

@@ -7,7 +7,6 @@ export const PROFILE = {
   email: "aaronbeschorner@gmail.com",
   github: "aaronbesc",
   linkedin: "https://www.linkedin.com/in/aaron-beschorner/",
-  // TODO: X handle, without the @.
-  x: null as string | null,
+  x: "aaronbeschorner",
   source: "https://github.com/aaronbesc/my_portfolio",
 };

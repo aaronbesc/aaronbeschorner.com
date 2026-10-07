@@ -13,7 +13,7 @@ import MaskIcon from "./MaskIcon";
 
 export type Social = {
   name: string;
-  href: string | null;
+  href: string;
   icon: string;
   iconClass: string;
   /** Card shown above the icon on hover. */
@@ -66,33 +66,19 @@ export default function SocialLinks({ items }: { items: Social[] }) {
       className="relative flex items-center gap-[1em]"
       onPointerLeave={() => setOpen(false)}
     >
-      {items.map(({ name, href, icon, iconClass }, i) => {
-        const glyph = <MaskIcon src={icon} className={iconClass} />;
-        const color = "flex text-muted transition-colors hover:text-ink";
-        return href ? (
-          <a
-            key={name}
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={name}
-            onPointerEnter={(e) => show(i, e)}
-            className={`${color} focus-visible:text-ink`}
-          >
-            {glyph}
-          </a>
-        ) : (
-          <span
-            key={name}
-            role="img"
-            aria-label={name}
-            onPointerEnter={(e) => show(i, e)}
-            className={color}
-          >
-            {glyph}
-          </span>
-        );
-      })}
+      {items.map(({ name, href, icon, iconClass }, i) => (
+        <a
+          key={name}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={name}
+          onPointerEnter={(e) => show(i, e)}
+          className="flex text-muted transition-colors hover:text-ink focus-visible:text-ink"
+        >
+          <MaskIcon src={icon} className={iconClass} />
+        </a>
+      ))}
 
       <div
         ref={box}

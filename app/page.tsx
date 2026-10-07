@@ -84,7 +84,7 @@ export default async function Home() {
     },
     {
       name: "X",
-      href: PROFILE.x && `https://x.com/${PROFILE.x}`,
+      href: `https://x.com/${PROFILE.x}`,
       icon: "/icons/x.png",
       iconClass: "size-[1.4em] gators-icon gators-alt",
       preview: <XPreview />,
