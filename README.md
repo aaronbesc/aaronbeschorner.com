@@ -14,6 +14,7 @@ Pushing to `main` deploys to production on Vercel.
 
 - `app/page.tsx` — the homepage: island, card deck, footer
 - `app/globals.css` — light and dark palettes, glass, Go Gators party styles
+- `app/opengraph-image.tsx` — the preview image shown when the site is shared (fonts in `assets/fonts/`)
 - `components/Island.tsx` — the pill at the top and its menu (hover, tap or ⌘K / Ctrl K)
 - `components/Deck.tsx` — the swipeable card stack and its pager
 - `components/SocialLinks.tsx`, `components/Previews.tsx` — social icons and their hover previews

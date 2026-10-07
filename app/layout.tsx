@@ -16,10 +16,22 @@ const cascadia = Cascadia_Code({
   variable: "--font-cascadia",
 });
 
+const description =
+  "Data Engineer at Intempo. B.S. in Computer Science from the University of Florida. Based in Madrid, Spain.";
+
+// The share image itself comes from app/opengraph-image.tsx. On Vercel,
+// Next.js resolves its absolute URL from the production domain.
 export const metadata: Metadata = {
   title: "Aaron Beschorner",
-  description:
-    "Data Engineer at Intempo. B.S. in Computer Science from the University of Florida. Based in Madrid, Spain.",
+  description,
+  openGraph: {
+    title: "Aaron Beschorner",
+    description,
+    siteName: "Aaron Beschorner",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
