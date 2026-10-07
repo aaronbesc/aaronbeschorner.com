@@ -4,10 +4,12 @@ import { ImageResponse } from "next/og";
 import { PROFILE } from "@/lib/profile";
 
 // The preview shown when the site is shared (LinkedIn, WhatsApp, iMessage,
-// X…). Rendered once at build time: the homepage card stack as a poster,
-// in the light palette, with everything large enough to read as a thumbnail.
+// X…). Rendered once at build time: the homepage's white card as a poster,
+// in the light palette, large enough to read as a thumbnail.
 
-export const alt = `${PROFILE.name} — ${PROFILE.headline}, ${PROFILE.location}`;
+const TAGLINE = "data + ai + design";
+
+export const alt = `${PROFILE.name} — ${TAGLINE}`;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -16,26 +18,16 @@ const COLOR = {
   canvas: "#f2f2f2",
   surface: "#ffffff",
   ink: "#171717",
-  muted: "#928c88",
   mutedStrong: "#5b5652",
-  accent: "#a259ff",
 };
-
-const dataUrl = (bytes: Buffer, type: string) =>
-  `data:${type};base64,${bytes.toString("base64")}`;
 
 export default async function OpenGraphImage() {
   // Literal paths, so the build traces just these files.
-  const [inter, interMedium, cascadia, photo, gators, pin] = await Promise.all([
+  const [inter, interMedium, photo] = await Promise.all([
     readFile(join(process.cwd(), "assets/fonts/Inter-Regular.ttf")),
     readFile(join(process.cwd(), "assets/fonts/Inter-Medium.ttf")),
-    readFile(join(process.cwd(), "assets/fonts/CascadiaCode-Light.ttf")),
     readFile(join(process.cwd(), "public/images/linkedin/profile.jpg")),
-    readFile(join(process.cwd(), "public/images/uf-gators.png")),
-    readFile(join(process.cwd(), "public/icons/location.svg")),
   ]);
-
-  const card = { width: 1000, height: 400, radius: 36 };
 
   return new ImageResponse(
     (
@@ -44,106 +36,51 @@ export default async function OpenGraphImage() {
           display: "flex",
           width: "100%",
           height: "100%",
-          alignItems: "center",
-          justifyContent: "center",
-          paddingBottom: 48, // room for the cards peeking out below
+          padding: 80,
           backgroundColor: COLOR.canvas,
           fontFamily: "Inter",
         }}
       >
-        <div style={{ display: "flex", position: "relative", ...card }}>
-          {/* The cards behind, peeking out like on the homepage. */}
-          <div
-            style={{
-              position: "absolute",
-              left: card.width * 0.096,
-              right: card.width * 0.096,
-              top: 48,
-              height: card.height,
-              borderRadius: card.radius,
-              backgroundColor: COLOR.accent,
-            }}
+        <div
+          style={{
+            display: "flex",
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 60,
+            borderRadius: 40,
+            backgroundColor: COLOR.surface,
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- rendered to PNG, not the page */}
+          <img
+            src={`data:image/jpeg;base64,${photo.toString("base64")}`}
+            alt=""
+            width={220}
+            height={220}
+            style={{ borderRadius: 999, objectFit: "cover" }}
           />
-          <div
-            style={{
-              position: "absolute",
-              left: card.width * 0.05,
-              right: card.width * 0.05,
-              top: 26,
-              height: card.height,
-              borderRadius: card.radius,
-              backgroundColor: COLOR.ink,
-            }}
-          />
-
-          <div
-            style={{
-              display: "flex",
-              position: "relative",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              width: "100%",
-              height: "100%",
-              padding: "64px 80px 56px",
-              borderRadius: card.radius,
-              backgroundColor: COLOR.surface,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 44 }}>
-              {/* eslint-disable-next-line @next/next/no-img-element -- rendered to PNG, not the page */}
-              <img
-                src={dataUrl(photo, "image/jpeg")}
-                alt=""
-                width={168}
-                height={168}
-                style={{ borderRadius: 999, objectFit: "cover" }}
-              />
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <div
-                  style={{
-                    fontSize: 68,
-                    fontWeight: 500,
-                    color: COLOR.ink,
-                    letterSpacing: -1.5,
-                    lineHeight: 1.05,
-                  }}
-                >
-                  {PROFILE.name}
-                </div>
-                <div style={{ marginTop: 14, fontSize: 34, color: COLOR.mutedStrong }}>
-                  {PROFILE.headline}
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    marginTop: 8,
-                    fontSize: 30,
-                    color: COLOR.muted,
-                  }}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element -- rendered to PNG, not the page */}
-                  <img src={dataUrl(pin, "image/svg+xml")} alt="" width={20} height={25} />
-                  {PROFILE.location}
-                </div>
-              </div>
-            </div>
-
+          <div style={{ display: "flex", flexDirection: "column" }}>
             <div
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 14,
-                fontFamily: "Cascadia Code",
-                fontWeight: 300,
-                fontSize: 26,
-                color: COLOR.muted,
+                fontSize: 80,
+                fontWeight: 500,
+                color: COLOR.ink,
+                letterSpacing: -2,
+                lineHeight: 1.05,
               }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element -- rendered to PNG, not the page */}
-              <img src={dataUrl(gators, "image/png")} alt="" width={44} height={44} />
-              University of Florida · Computer Science
+              {PROFILE.name}
+            </div>
+            <div
+              style={{
+                marginTop: 18,
+                fontSize: 40,
+                color: COLOR.mutedStrong,
+                letterSpacing: -0.4,
+              }}
+            >
+              {TAGLINE}
             </div>
           </div>
         </div>
@@ -154,7 +91,6 @@ export default async function OpenGraphImage() {
       fonts: [
         { name: "Inter", data: inter, weight: 400, style: "normal" },
         { name: "Inter", data: interMedium, weight: 500, style: "normal" },
-        { name: "Cascadia Code", data: cascadia, weight: 300, style: "normal" },
       ],
     },
   );
