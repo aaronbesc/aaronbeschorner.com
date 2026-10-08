@@ -16,10 +16,6 @@
   /* Darker muted for small text on the island, so it stays readable over
      the glass (4.5:1 or better). */
   --color-muted-strong: #5b5652;
-  /* The cards behind the front one, stepping steadily darker as they go
-     back, like cards falling into shadow. Neutral, like every surface. */
-  --color-layer-1: #989898;
-  --color-layer-2: #535353;
 
   /* Official University of Florida brand colors (brand.ufl.edu). */
   --color-gator-orange: #fa4616; /* PMS 172 */
@@ -87,9 +83,6 @@
   --color-fg: #f2f2f2;
   --color-ink: #ececec;
   --color-muted-strong: #aea8a4;
-  /* Two soft charcoal steps: depth without glare. */
-  --color-layer-1: #3a3a3a;
-  --color-layer-2: #565656;
   --glass-tint: rgb(44 47 50 / 0.7);
   --glass-tint-reduced: rgb(42 44 47 / 0.8);
 }
@@ -170,11 +163,12 @@ body {
   }
 }
 
-/* The cards behind the front one: the party color fades in over their own. */
+/* The cards behind the front one: the party color fades in over them. */
 @utility gators-layer {
   &::before {
     content: "";
     position: absolute;
+    z-index: 1;
     inset: 0;
     border-radius: inherit;
     background-color: var(--gators-color);
@@ -195,11 +189,17 @@ body {
 }
 
 /*
- * Claw machine (TechTank). Capsules are the surface color with a glossy
- * highlight. The tank glass is clear, with two diagonal reflections that
- * drift against the pointer (--glare, -0.5 to 0.5) and a little depth where
- * the tank meets the glass.
+ * Claw machine (TechTank). The card is the tank: a floor that darkens toward
+ * the bottom, glossy capsules, and a pane of Liquid Glass in front.
  */
+@utility tank {
+  background: linear-gradient(to bottom, #f9f9f9, #e8e8e8);
+
+  [data-theme="dark"] & {
+    background: linear-gradient(to bottom, #262626, #191919);
+  }
+}
+
 @utility capsule {
   background:
     radial-gradient(circle at 32% 26%, rgb(255 255 255 / 0.9), transparent 42%),
@@ -218,15 +218,29 @@ body {
   }
 }
 
-@utility tank-glass {
+/*
+ * Liquid Glass, after Apple's material. Clear, with:
+ *  - lensing: what's behind bends near the edges, like the rim of a thick
+ *    pane (an SVG displacement filter in TechTank, shaped to the card);
+ *  - a specular highlight that follows the light, here the pointer
+ *    (--gx, --gy), on the surface and on the part of the rim nearest it;
+ *  - thickness: a soft bright band just inside the edge;
+ *  - faint reflections drifting against the pointer (--glare).
+ */
+@utility liquid-glass {
   position: absolute;
   inset: 0;
   overflow: hidden;
   border-radius: inherit;
   pointer-events: none;
+  background: radial-gradient(
+    circle at var(--gx, 28%) var(--gy, 10%),
+    rgb(255 255 255 / 0.18),
+    transparent 40%
+  );
   box-shadow:
-    inset 0 0 0 1px rgb(0 0 0 / 0.04),
-    inset 0 16px 28px -22px rgb(0 0 0 / 0.3);
+    inset 0 0 2px rgb(255 255 255 / 0.7),
+    inset 0 0 12px rgb(255 255 255 / 0.35);
 
   &::before {
     content: "";
@@ -236,23 +250,54 @@ body {
     background: linear-gradient(
       105deg,
       transparent 24%,
-      rgb(255 255 255 / 0.55) 28%,
-      rgb(255 255 255 / 0.12) 33%,
+      rgb(255 255 255 / 0.4) 28%,
+      rgb(255 255 255 / 0.08) 33%,
       transparent 36%,
       transparent 58%,
-      rgb(255 255 255 / 0.32) 61%,
+      rgb(255 255 255 / 0.22) 61%,
       transparent 65%
     );
     transition: translate 250ms ease-out;
   }
 
+  /* The rim: a thin edge, brightest where the light is. */
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1.5px;
+    border-radius: inherit;
+    background: radial-gradient(
+      circle at var(--gx, 28%) var(--gy, 10%),
+      rgb(255 255 255 / 0.95),
+      rgb(255 255 255 / 0.3) 40%,
+      rgb(255 255 255 / 0.1) 75%
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box exclude,
+      linear-gradient(#000 0 0);
+  }
+
   [data-theme="dark"] & {
+    background: radial-gradient(
+      circle at var(--gx, 28%) var(--gy, 10%),
+      rgb(255 255 255 / 0.07),
+      transparent 45%
+    );
     box-shadow:
-      inset 0 0 0 1px rgb(255 255 255 / 0.05),
-      inset 0 16px 28px -22px rgb(0 0 0 / 0.7);
+      inset 0 0 3px rgb(255 255 255 / 0.18),
+      inset 0 0 26px rgb(255 255 255 / 0.06);
   }
 
   [data-theme="dark"] &::before {
-    opacity: 0.16;
+    opacity: 0.25;
+  }
+
+  [data-theme="dark"] &::after {
+    opacity: 0.4;
   }
 }

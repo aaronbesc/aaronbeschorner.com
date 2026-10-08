@@ -98,11 +98,7 @@ function BioCard({ socials }: { socials: Social[] }) {
 
 // The tech stack as a claw machine (see TechTank).
 function StackCard() {
-  return (
-    <div className="flex size-full flex-col p-[5cqi] md:px-[7cqi] md:py-[5cqi]">
-      <TechTank tools={STACK} />
-    </div>
-  );
+  return <TechTank tools={STACK} />;
 }
 
 // Placeholder until the content for cards 3–4 is designed.

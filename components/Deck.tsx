@@ -18,6 +18,8 @@ type DeckState = {
   count: number;
   leaving: number | null;
   entering: number | null;
+  /** A card is animating to its new place. */
+  moving: boolean;
   next: () => void;
   prev: () => void;
 };
@@ -30,11 +32,19 @@ function useDeck() {
   return deck;
 }
 
-const FrontCardContext = createContext(true);
+const CardContext = createContext({ front: true, still: true });
 
 /** Whether the card this is rendered in is the one in front. */
 export function useIsFrontCard() {
-  return use(FrontCardContext);
+  return use(CardContext).front;
+}
+
+/**
+ * Whether the card is in front and at rest: not being dragged and not
+ * animating. For effects too costly to redraw while the card moves.
+ */
+export function useIsCardStill() {
+  return use(CardContext).still;
 }
 
 /** Holds which card is in front; shared by the cards and the pager. */
@@ -48,15 +58,18 @@ export function Deck({
   const [index, setIndex] = useState(0);
   const [leaving, setLeaving] = useState<number | null>(null);
   const [entering, setEntering] = useState<number | null>(null);
+  const [moving, setMoving] = useState(false);
   const busy = useRef(false);
 
   // Ignore input while a card is mid-animation.
   function begin() {
     if (busy.current || count < 2) return false;
     busy.current = true;
+    setMoving(true);
     setTimeout(() => {
       busy.current = false;
-    }, DURATION);
+      setMoving(false);
+    }, DURATION + 50);
     return true;
   }
 
@@ -102,28 +115,25 @@ export function Deck({
   }, []);
 
   return (
-    <DeckContext value={{ index, count, leaving, entering, next, prev }}>
+    <DeckContext value={{ index, count, leaving, entering, moving, next, prev }}>
       {children}
     </DeckContext>
   );
 }
 
-// Resting pose of the cards behind the front one, from the Figma design:
-// each layer is narrower, peeks out further below, and has its own color.
-// During the Go Gators party they light up in orange and blue (gators-layer).
-const LAYERS = [
-  {
-    transform: "translateY(5.6%) scaleX(0.9)",
-    bg: "bg-layer-1 gators-layer",
-    z: 30,
-  },
-  {
-    transform: "translateY(10.2%) scaleX(0.808)",
-    bg: "bg-layer-2 gators-layer gators-alt",
-    z: 20,
-  },
+// Resting pose by depth: the front card, then the cards behind it, each a
+// little smaller and lower so its bottom peeks out (5.6% and 10.2% of the
+// card, from the Figma design) and slightly dimmed. Their content stays
+// visible, so the next card is already there when it comes forward.
+const POSES = [
+  { y: 0, scale: 1, dim: 0 },
+  { y: 0.106, scale: 0.9, dim: 0.04 },
+  { y: 0.198, scale: 0.808, dim: 0.08 },
 ];
+// During the Go Gators party the cards behind light up in orange and blue.
+const PARTY = ["", "gators-layer", "gators-layer gators-alt"];
 const OFFSTAGE = "translateY(-110%)";
+const EASE = "duration-450 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none";
 
 /**
  * The card stack. Swipe (or drag) up for the next card and down for the
@@ -136,9 +146,10 @@ export function DeckCards({
   cards: ReactNode[];
   label: string;
 }) {
-  const { index, count, leaving, entering, next, prev } = useDeck();
+  const { index, count, leaving, entering, moving, next, prev } = useDeck();
   const [drag, setDrag] = useState(0);
   const [dragging, setDragging] = useState(false);
+  const [height, setHeight] = useState(1);
   const area = useRef<HTMLDivElement>(null);
   const gesture = useRef<{
     id: number;
@@ -197,6 +208,7 @@ export function DeckCards({
       if (Math.abs(dy) < 8) return;
       g.active = true;
       setDragging(true);
+      setHeight(e.currentTarget.offsetHeight);
       e.currentTarget.setPointerCapture(e.pointerId);
     }
     // Pulling down only hints at the previous card, so it resists.
@@ -229,7 +241,7 @@ export function DeckCards({
       className="flex items-center justify-center lg:size-full lg:[container-type:size]"
     >
       {/* --w is the card width: as wide as possible while the whole stack
-          (card plus the layers peeking 10.2% below) fits on screen. Below lg
+          (card plus the cards peeking 10.2% below) fits on screen. Below lg
           that leaves ~260px for the header and footer; on lg the card fills
           whatever height <main> gets. */}
       <div
@@ -253,23 +265,32 @@ export function DeckCards({
           const depth = (i - index + count) % count;
           const flying = i === leaving || i === entering;
           const front = depth === 0 && i !== entering;
+          // While the front card is dragged up, the cards behind move up a
+          // place in proportion, so the next one follows the finger.
+          const progress = dragging && drag < 0 ? Math.min(1, -drag / (height * 0.6)) : 0;
 
           let transform = `translateY(${drag}px)`;
-          let bg = "bg-surface";
           let z = 40;
           let opacity = 1;
+          let dim = 0;
+          let party = "";
           if (flying) {
             transform = OFFSTAGE;
             z = 50;
             opacity = 0;
           } else if (depth > 0) {
-            const layer = LAYERS[Math.min(depth, LAYERS.length) - 1];
-            transform = layer.transform;
-            bg = layer.bg;
-            z = depth > LAYERS.length ? 10 : layer.z;
-            opacity = depth > LAYERS.length ? 0 : 1;
+            const d = Math.min(depth, POSES.length - 1);
+            const from = POSES[d];
+            const to = depth < POSES.length ? POSES[d - 1] : from;
+            const mix = (a: number, b: number) => a + (b - a) * progress;
+            transform = `translateY(${mix(from.y, to.y) * 100}%) scale(${mix(from.scale, to.scale)})`;
+            dim = mix(from.dim, to.dim);
+            z = 40 - depth * 10;
+            // Cards deeper than the stack wait, hidden, in the last slot.
+            opacity = depth < POSES.length ? 1 : progress;
+            party = PARTY[d];
           }
-          const animate = i !== entering && !(front && dragging);
+          const animate = i !== entering && !dragging;
 
           return (
             <div
@@ -278,14 +299,19 @@ export function DeckCards({
               aria-roledescription="slide"
               aria-label={`${i + 1} of ${count}`}
               inert={!front}
-              className={`@container absolute inset-0 overflow-hidden rounded-[20px] md:rounded-[24px] ${bg} ${animate ? "transition-[transform,opacity,background-color] duration-450 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none" : ""}`}
+              className={`@container absolute inset-0 overflow-hidden rounded-[20px] bg-surface shadow-[0_1px_2px_rgb(0_0_0/0.05),0_10px_28px_-16px_rgb(0_0_0/0.25)] md:rounded-[24px] dark:ring-1 dark:ring-white/[0.06] ${party} ${animate ? `transition-[transform,opacity] ${EASE}` : ""}`}
               style={{ transform, opacity, zIndex: z }}
             >
-              <div
-                className={`size-full transition-opacity duration-300 ${front || flying ? "opacity-100" : "opacity-0"}`}
-              >
-                <FrontCardContext value={front}>{card}</FrontCardContext>
+              <div className="size-full">
+                <CardContext value={{ front, still: front && !dragging && !moving }}>
+                  {card}
+                </CardContext>
               </div>
+              <div
+                aria-hidden
+                className={`pointer-events-none absolute inset-0 bg-black ${animate ? `transition-opacity ${EASE}` : ""}`}
+                style={{ opacity: dim }}
+              />
             </div>
           );
         })}

@@ -4,21 +4,26 @@ import Image from "next/image";
 import {
   useEffect,
   useEffectEvent,
+  useId,
   useRef,
   useState,
   useSyncExternalStore,
   type RefObject,
 } from "react";
 import type { Tool } from "@/lib/stack";
-import { useIsFrontCard } from "./Deck";
+import { useIsCardStill, useIsFrontCard } from "./Deck";
 
-// A claw machine: the tools are capsules in a glass tank. They drop in and
-// pile up under gravity; hovering the card lines them up in two rows, and
-// hovering one keeps it in color while the claw comes down over it.
+// A claw machine filling the card: the tools are capsules in a tank behind a
+// pane of Liquid Glass. They lie in a pile under gravity; hovering the card
+// lines them up in two rows, and hovering one keeps it in color while the
+// claw comes down over it.
 
 const STEP = 1 / 120; // fixed physics step, in seconds
 const ROWS = 2;
+const RAIL = 0.15; // rail height, as a share of the tank
+const CABLE = 0.07; // resting cable length, as a share of the tank
 const CLAW_HEIGHT = 18; // px, the claw drawing below the cable
+const LENS = 28; // px, how far the glass bends things at its very edge
 
 type Body = {
   x: number;
@@ -71,11 +76,11 @@ class TankEngine {
     const cols = Math.ceil(this.count / ROWS);
     const row = Math.floor(i / cols);
     const inRow = row === 0 ? cols : this.count - cols;
-    const span = Math.min(this.r * 2.9, (this.w * 0.88 - 2 * this.r) / (cols - 1));
+    const span = Math.min(this.r * 2.9, (this.w * 0.86 - 2 * this.r) / (cols - 1));
     const gap = span * 0.95;
     return {
       x: this.w / 2 + (i - row * cols - (inRow - 1) / 2) * span,
-      y: this.h * 0.58 - gap / 2 + row * gap,
+      y: this.h * 0.6 - gap / 2 + row * gap,
     };
   }
 
@@ -91,28 +96,42 @@ class TankEngine {
     }
     this.w = width;
     this.h = height;
-    this.r = Math.max(10, Math.min(width * 0.05, height * 0.11));
+    this.r = Math.max(10, Math.min(width * 0.05, height * 0.1));
     for (const c of this.parts.capsules.current) {
       if (c) c.style.width = c.style.height = `${2 * this.r}px`;
     }
     if (this.clawX < 0) this.clawX = width / 2;
   }
 
-  /** Fills the tank: raining in from above, or already lined up. */
-  fill(dropIn: boolean) {
+  /** Fills the tank: dropped in and settled out of sight, or lined up. */
+  fill() {
     this.bodies = Array.from({ length: this.count }, (_, i) => {
-      if (dropIn && !this.calm) {
-        const x = this.r + Math.random() * (this.w - 2 * this.r);
-        const y = -this.r * (1.5 + i * 1.4);
-        return { x, y, px: x + (Math.random() - 0.5) * 2, py: y - 2, angle: Math.random() * 6.28, lx: 0, ly: 0 };
+      if (this.calm) {
+        const t = this.slot(i);
+        return { x: t.x, y: t.y, px: t.x, py: t.y, angle: 0, lx: 0, ly: 0 };
       }
-      const t = this.slot(i);
-      return { x: t.x, y: t.y, px: t.x, py: t.y, angle: 0, lx: 0, ly: 0 };
+      const x = this.r + Math.random() * (this.w - 2 * this.r);
+      const y = -this.r * (1.5 + i * 1.4);
+      return { x, y, px: x + (Math.random() - 0.5) * 2, py: y - 2, angle: Math.random() * 6.28, lx: 0, ly: 0 };
     });
+    // Let them fall and come to rest right away, so the pile is already
+    // there when the card peeks out from behind the first one.
+    if (!this.calm) for (let t = 0; t < 4 / STEP; t++) this.step(STEP);
     this.draw();
   }
 
+  /** A little hop, as if the machine got bumped when the card came forward. */
+  jostle() {
+    if (this.calm || this.sorted) return;
+    for (const b of this.bodies) {
+      b.py = b.y + this.r * (0.06 + Math.random() * 0.1);
+      b.px = b.x + (Math.random() - 0.5) * this.r * 0.08;
+    }
+    this.wake();
+  }
+
   sort(on: boolean) {
+    if (this.sorted === on) return;
     this.sorted = on;
     if (!on) {
       this.hovered = -1;
@@ -216,7 +235,7 @@ class TankEngine {
     const k = this.calm ? 1 : 1 - Math.exp(-8 * dt);
     const x = target ? target.x : this.pointerX >= 0 ? this.pointerX : w / 2;
     this.clawX += (x - this.clawX) * k;
-    const clawBottom = h * 0.07 + h * 0.08 + CLAW_HEIGHT;
+    const clawBottom = h * (RAIL + CABLE) + CLAW_HEIGHT;
     const drop = target ? Math.max(0, target.y - r - clawBottom - 2) : 0;
     this.clawDrop += (drop - this.clawDrop) * k;
   }
@@ -240,10 +259,61 @@ class TankEngine {
       moved = Math.max(moved, Math.abs(this.clawX - this.clawDrawnX));
       this.clawDrawnX = this.clawX;
       claw.style.transform = `translateX(${this.clawX}px) translateX(-50%)`;
-      cable.style.height = `${this.h * 0.08 + this.clawDrop}px`;
+      cable.style.height = `${this.h * CABLE + this.clawDrop}px`;
     }
     return moved;
   }
+}
+
+/**
+ * Displacement map for the glass's lensing, for a rounded rectangle of the
+ * given size. Red and green push each pixel toward the center, strongest at
+ * the rim and fading to nothing a short way in, so things behind the glass
+ * stretch and curve only as they reach the edge, like thick glass.
+ */
+function lensMap(w: number, h: number, radius: number) {
+  const scale = Math.min(1, 1200 / w);
+  const cw = Math.max(2, Math.round(w * scale));
+  const ch = Math.max(2, Math.round(h * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = cw;
+  canvas.height = ch;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return "";
+  const img = ctx.createImageData(cw, ch);
+  const rim = Math.min(w, h) * 0.09;
+  for (let j = 0; j < ch; j++) {
+    for (let i = 0; i < cw; i++) {
+      // Distance in from the rounded edge, and the outward direction there.
+      const x = (i + 0.5) / scale - w / 2;
+      const y = (j + 0.5) / scale - h / 2;
+      const qx = Math.abs(x) - (w / 2 - radius);
+      const qy = Math.abs(y) - (h / 2 - radius);
+      let inside: number;
+      let nx = 0;
+      let ny = 0;
+      if (qx > 0 && qy > 0) {
+        const l = Math.hypot(qx, qy);
+        inside = radius - l;
+        nx = qx / l;
+        ny = qy / l;
+      } else if (qx > qy) {
+        inside = radius - qx;
+        nx = 1;
+      } else {
+        inside = radius - qy;
+        ny = 1;
+      }
+      const s = Math.max(0, 1 - inside / rim) ** 2;
+      const k = (j * cw + i) * 4;
+      img.data[k] = 128 - Math.sign(x) * nx * s * 127;
+      img.data[k + 1] = 128 - Math.sign(y) * ny * s * 127;
+      img.data[k + 2] = 128;
+      img.data[k + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return canvas.toDataURL();
 }
 
 const media = (query: string) => ({
@@ -258,20 +328,20 @@ const reducedMotion = media("(prefers-reduced-motion: reduce)");
 const finePointer = media("(hover: hover) and (pointer: fine)");
 
 export default function TechTank({ tools }: { tools: Tool[] }) {
-  // A fresh tank each time the card comes to the front, so the capsules
-  // drop in again.
-  const front = useIsFrontCard();
-  return <Tank key={front ? "front" : "back"} tools={tools} active={front} />;
-}
-
-function Tank({ tools, active }: { tools: Tool[]; active: boolean }) {
+  const active = useIsFrontCard();
+  const still = useIsCardStill();
   const calm = useSyncExternalStore(reducedMotion.subscribe, reducedMotion.get, () => false);
   const canHover = useSyncExternalStore(finePointer.subscribe, finePointer.get, () => true);
   const [sorted, setSorted] = useState(false);
   const [hovered, setHovered] = useState(-1);
+  const lensId = `lens-${useId().replace(/[^\w-]/g, "")}`;
 
+  const root = useRef<HTMLDivElement>(null);
   const tank = useRef<HTMLDivElement>(null);
   const glass = useRef<HTMLDivElement>(null);
+  const lens = useRef<SVGFEImageElement>(null);
+  const bend = useRef<SVGFEDisplacementMapElement>(null);
+  const lensRaf = useRef(0);
   const claw = useRef<HTMLDivElement>(null);
   const cable = useRef<HTMLSpanElement>(null);
   const capsules = useRef<(HTMLLIElement | null)[]>([]);
@@ -279,9 +349,7 @@ function Tank({ tools, active }: { tools: Tool[]; active: boolean }) {
   const lastPointer = useRef("mouse");
 
   function sort(on: boolean) {
-    const e = engine.current;
-    if (!e || e.sorted === on) return;
-    e.sort(on);
+    engine.current?.sort(on);
     setSorted(on);
     if (!on) setHovered(-1);
   }
@@ -296,30 +364,77 @@ function Tank({ tools, active }: { tools: Tool[]; active: boolean }) {
     if (!el) return;
     const e = new TankEngine(tools.length, { capsules, claw, cable }, reducedMotion.get());
     engine.current = e;
-    // Layout size, not getBoundingClientRect: the card may still be
-    // scaling into place, and transforms don't trigger the observer.
-    const measure = () => e.measure(el.offsetWidth, el.offsetHeight);
+    // Layout size, not getBoundingClientRect: the card may be scaled in the
+    // stack, and transforms don't trigger the observer.
+    const measure = () => {
+      e.measure(el.offsetWidth, el.offsetHeight);
+      const map = lens.current;
+      const radius = root.current ? Number.parseFloat(getComputedStyle(root.current).borderTopLeftRadius) || 0 : 0;
+      if (map && el.offsetWidth) {
+        map.setAttribute("width", String(el.offsetWidth));
+        map.setAttribute("height", String(el.offsetHeight));
+        map.setAttribute("href", lensMap(el.offsetWidth, el.offsetHeight, radius));
+      }
+    };
     measure();
-    e.fill(active);
+    e.fill();
     const observer = new ResizeObserver(() => {
       measure();
       e.wake();
     });
     observer.observe(el);
-    if (active) e.wake();
     return () => {
       observer.disconnect();
       e.stop();
     };
   });
 
-  useEffect(() => setup(), []);
+  // When the card comes to the front the capsules hop; when it leaves, they
+  // drop back into the pile.
+  const onActive = useEffectEvent((front: boolean) => {
+    if (front) engine.current?.jostle();
+    else engine.current?.sort(false);
+  });
 
-  const lined = sorted || calm;
+  // The lens is cheap while the card is at rest but costly to redraw while it
+  // moves or scales, so it bends only once the card has settled in front,
+  // easing in like glass settling into place.
+  const onStill = useEffectEvent((on: boolean) => {
+    const layer = tank.current;
+    const map = bend.current;
+    if (!layer || !map) return;
+    cancelAnimationFrame(lensRaf.current);
+    if (!on) {
+      layer.style.filter = "none";
+      return;
+    }
+    layer.style.filter = `url(#${lensId})`;
+    if (reducedMotion.get()) {
+      map.setAttribute("scale", String(LENS));
+      return;
+    }
+    const start = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / 350);
+      map.setAttribute("scale", String(LENS * (1 - (1 - t) ** 3)));
+      if (t < 1) lensRaf.current = requestAnimationFrame(tick);
+    };
+    map.setAttribute("scale", "0");
+    lensRaf.current = requestAnimationFrame(tick);
+  });
+
+  useEffect(() => setup(), []);
+  useEffect(() => onActive(active), [active]);
+  useEffect(() => onStill(still), [still]);
+  useEffect(() => () => cancelAnimationFrame(lensRaf.current), []);
+
+  const lined = (sorted && active) || calm;
+  const picked = active ? hovered : -1;
 
   return (
     <div
-      className="flex min-h-0 flex-1 flex-col"
+      ref={root}
+      className="tank relative size-full overflow-hidden rounded-[20px] md:rounded-[24px]"
       onPointerEnter={(e) => {
         if (e.pointerType === "mouse") sort(true);
       }}
@@ -332,9 +447,13 @@ function Tank({ tools, active }: { tools: Tool[]; active: boolean }) {
         const rect = tank.current?.getBoundingClientRect();
         if (!rect || !engine.current) return;
         const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
         engine.current.pointerX = x;
         engine.current.wake();
-        glass.current?.style.setProperty("--glare", String(x / rect.width - 0.5));
+        const g = glass.current?.style;
+        g?.setProperty("--glare", String(x / rect.width - 0.5));
+        g?.setProperty("--gx", `${(x / rect.width) * 100}%`);
+        g?.setProperty("--gy", `${(y / rect.height) * 100}%`);
       }}
       onPointerDown={(e) => {
         lastPointer.current = e.pointerType;
@@ -351,13 +470,11 @@ function Tank({ tools, active }: { tools: Tool[]; active: boolean }) {
         }
       }}
     >
-      <div
-        ref={tank}
-        className="relative min-h-0 flex-1 overflow-hidden rounded-[2.4cqi] bg-canvas"
-      >
+      {/* Everything behind the glass, bent by its lens near the edges. */}
+      <div ref={tank} className="absolute inset-0">
         <ul aria-label="Tech stack" className="absolute inset-0">
           {tools.map((tool, i) => {
-            const dim = hovered >= 0 && hovered !== i;
+            const dim = picked >= 0 && picked !== i;
             return (
               <li
                 key={tool.name}
@@ -376,7 +493,7 @@ function Tank({ tools, active }: { tools: Tool[]; active: boolean }) {
                 <span
                   className={`capsule flex size-full items-center justify-center rounded-full transition-[scale,filter,opacity] duration-200 ${
                     dim ? "opacity-40 grayscale" : ""
-                  } ${hovered === i ? "scale-110" : ""}`}
+                  } ${picked === i ? "scale-110" : ""}`}
                 >
                   <Image
                     src={tool.logo}
@@ -393,11 +510,16 @@ function Tank({ tools, active }: { tools: Tool[]; active: boolean }) {
         </ul>
 
         {/* The claw, hanging from its rail. */}
-        <span aria-hidden className="absolute inset-x-[3%] top-[7%] h-px bg-muted/50" />
+        <span
+          aria-hidden
+          className="absolute inset-x-[4%] h-px bg-muted/50"
+          style={{ top: `${RAIL * 100}%` }}
+        />
         <div
           ref={claw}
           aria-hidden
-          className="absolute top-[7%] left-0 flex flex-col items-center text-muted"
+          className="absolute left-0 flex flex-col items-center text-muted"
+          style={{ top: `${RAIL * 100}%` }}
         >
           <span className="h-[5px] w-4 -translate-y-1/2 rounded-[2px] bg-current" />
           <span ref={cable} className="-mt-[2.5px] w-px bg-current" />
@@ -414,22 +536,44 @@ function Tank({ tools, active }: { tools: Tool[]; active: boolean }) {
             <path d="M10.5 4.5C6 8 4.5 12 7 16.5M13.5 4.5C18 8 19.5 12 17 16.5" />
           </svg>
         </div>
-
-        <div ref={glass} aria-hidden className="tank-glass" />
       </div>
+
+      <div ref={glass} aria-hidden className="liquid-glass" />
 
       <p
         aria-live="polite"
-        className="mt-[2.4cqi] text-center font-mono text-[3.2cqi] font-light text-muted md:mt-[1.4cqi] md:text-[1.6cqi]"
+        className="absolute top-[5%] left-[4.5%] font-mono text-[3.2cqi] font-light text-muted md:text-[1.6cqi]"
       >
-        {hovered >= 0
-          ? tools[hovered].name
+        {picked >= 0
+          ? tools[picked].name
           : lined
             ? "my stack"
             : canHover
               ? "hover to sort"
               : "tap to sort"}
       </p>
+
+      <svg aria-hidden className="pointer-events-none absolute size-0">
+        <filter
+          id={lensId}
+          x="0"
+          y="0"
+          width="1"
+          height="1"
+          primitiveUnits="userSpaceOnUse"
+          colorInterpolationFilters="sRGB"
+        >
+          <feImage ref={lens} x="0" y="0" preserveAspectRatio="none" result="map" />
+          <feDisplacementMap
+            ref={bend}
+            in="SourceGraphic"
+            in2="map"
+            scale={0}
+            xChannelSelector="R"
+            yChannelSelector="G"
+          />
+        </filter>
+      </svg>
     </div>
   );
 }
