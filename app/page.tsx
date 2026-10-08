@@ -11,9 +11,11 @@ import {
   XPreview,
 } from "@/components/Previews";
 import SocialLinks, { type Social } from "@/components/SocialLinks";
+import TechTank from "@/components/TechTank";
 import { getLatestCommit } from "@/lib/commit";
 import { getContributions } from "@/lib/github";
 import { PROFILE } from "@/lib/profile";
+import { STACK } from "@/lib/stack";
 import { getMadridWeather } from "@/lib/weather";
 
 const term =
@@ -94,7 +96,16 @@ function BioCard({ socials }: { socials: Social[] }) {
   );
 }
 
-// Placeholder until the content for cards 2–4 is designed.
+// The tech stack as a claw machine (see TechTank).
+function StackCard() {
+  return (
+    <div className="flex size-full flex-col p-[5cqi] md:px-[7cqi] md:py-[5cqi]">
+      <TechTank tools={STACK} />
+    </div>
+  );
+}
+
+// Placeholder until the content for cards 3–4 is designed.
 function ComingSoonCard() {
   return (
     <div className="flex size-full items-center justify-center font-mono text-[3.6cqi] font-light text-muted md:text-[1.9cqi]">
@@ -134,7 +145,7 @@ export default async function Home() {
   ];
   const cards = [
     <BioCard key="bio" socials={socials} />,
-    <ComingSoonCard key="2" />,
+    <StackCard key="stack" />,
     <ComingSoonCard key="3" />,
     <ComingSoonCard key="4" />,
   ];

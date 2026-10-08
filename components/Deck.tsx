@@ -30,6 +30,13 @@ function useDeck() {
   return deck;
 }
 
+const FrontCardContext = createContext(true);
+
+/** Whether the card this is rendered in is the one in front. */
+export function useIsFrontCard() {
+  return use(FrontCardContext);
+}
+
 /** Holds which card is in front; shared by the cards and the pager. */
 export function Deck({
   count,
@@ -277,7 +284,7 @@ export function DeckCards({
               <div
                 className={`size-full transition-opacity duration-300 ${front || flying ? "opacity-100" : "opacity-0"}`}
               >
-                {card}
+                <FrontCardContext value={front}>{card}</FrontCardContext>
               </div>
             </div>
           );

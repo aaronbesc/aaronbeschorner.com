@@ -193,3 +193,66 @@ body {
     opacity: 1;
   }
 }
+
+/*
+ * Claw machine (TechTank). Capsules are the surface color with a glossy
+ * highlight. The tank glass is clear, with two diagonal reflections that
+ * drift against the pointer (--glare, -0.5 to 0.5) and a little depth where
+ * the tank meets the glass.
+ */
+@utility capsule {
+  background:
+    radial-gradient(circle at 32% 26%, rgb(255 255 255 / 0.9), transparent 42%),
+    var(--color-surface);
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.06),
+    0 2px 5px rgb(0 0 0 / 0.12);
+
+  [data-theme="dark"] & {
+    background:
+      radial-gradient(circle at 32% 26%, rgb(255 255 255 / 0.12), transparent 42%),
+      #2c2c2c;
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 0.06),
+      0 2px 5px rgb(0 0 0 / 0.5);
+  }
+}
+
+@utility tank-glass {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.04),
+    inset 0 16px 28px -22px rgb(0 0 0 / 0.3);
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0 -30%;
+    translate: calc(var(--glare, 0) * -8%) 0;
+    background: linear-gradient(
+      105deg,
+      transparent 24%,
+      rgb(255 255 255 / 0.55) 28%,
+      rgb(255 255 255 / 0.12) 33%,
+      transparent 36%,
+      transparent 58%,
+      rgb(255 255 255 / 0.32) 61%,
+      transparent 65%
+    );
+    transition: translate 250ms ease-out;
+  }
+
+  [data-theme="dark"] & {
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 0.05),
+      inset 0 16px 28px -22px rgb(0 0 0 / 0.7);
+  }
+
+  [data-theme="dark"] &::before {
+    opacity: 0.16;
+  }
+}
