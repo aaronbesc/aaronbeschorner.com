@@ -139,11 +139,28 @@ export default async function Home() {
       preview: <XPreview />,
     },
   ];
-  const cards = [
-    <BioCard key="bio" socials={socials} />,
-    <StackCard key="stack" />,
-    <ComingSoonCard key="3" />,
-    <ComingSoonCard key="4" />,
+  // The cards, with the name and icon each one has in the pager.
+  const pages = [
+    {
+      label: "Bio",
+      icon: "/icons/pages/bio.svg",
+      card: <BioCard socials={socials} />,
+    },
+    {
+      label: "Stack",
+      icon: "/icons/pages/stack.svg",
+      card: <StackCard />,
+    },
+    {
+      label: "Coming soon",
+      icon: "/icons/pages/soon.svg",
+      card: <ComingSoonCard />,
+    },
+    {
+      label: "Coming soon",
+      icon: "/icons/pages/soon.svg",
+      card: <ComingSoonCard />,
+    },
   ];
 
   return (
@@ -164,9 +181,9 @@ export default async function Home() {
         </p>
       </div>
 
-      <Deck count={cards.length}>
+      <Deck count={pages.length}>
         <main className="w-full lg:min-h-0 lg:flex-1 lg:py-6">
-          <DeckCards cards={cards} label="About Aaron" />
+          <DeckCards cards={pages.map((p) => p.card)} label="About Aaron" />
         </main>
 
         <footer className="flex w-full flex-auto flex-col items-center pt-3 pb-4 lg:grid lg:flex-none lg:pt-0 lg:grid-cols-[1fr_auto_1fr] lg:items-center lg:gap-6 lg:px-2 lg:pb-5">
@@ -186,7 +203,10 @@ export default async function Home() {
           </div>
 
           {/* Auto margins center the pager between the cards and the commit. */}
-          <DeckPager className="order-1 my-auto lg:order-none lg:my-0" />
+          <DeckPager
+            pages={pages.map(({ label, icon }) => ({ label, icon }))}
+            className="order-1 my-auto lg:order-none lg:my-0"
+          />
 
           <div className="order-3 mt-5 flex lg:mt-0 items-center gap-6 font-mono text-[11px] font-light lg:order-none lg:justify-self-end lg:text-xs">
             <p className="flex items-center gap-1.5 text-muted">

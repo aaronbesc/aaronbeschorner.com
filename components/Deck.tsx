@@ -10,16 +10,23 @@ import {
   type PointerEvent,
   type ReactNode,
 } from "react";
+import { flushSync } from "react-dom";
+import MaskIcon from "./MaskIcon";
 
-const DURATION = 450; // ms; matches duration-450 below.
+const DURATION = 450; // ms, for one card
+const QUICK = 260; // ms per card when jumping across several
 
 type DeckState = {
   index: number;
   count: number;
   leaving: number | null;
   entering: number | null;
+  /** How long the current move takes, in ms. */
+  duration: number;
   next: () => void;
   prev: () => void;
+  /** Goes to a card, passing through the ones in between. */
+  go: (target: number) => void;
 };
 
 const DeckContext = createContext<DeckState | null>(null);
@@ -48,36 +55,63 @@ export function Deck({
   const [index, setIndex] = useState(0);
   const [leaving, setLeaving] = useState<number | null>(null);
   const [entering, setEntering] = useState<number | null>(null);
+  const [duration, setDuration] = useState(DURATION);
+  // The index as of the latest step, for the timers of a jump.
+  const current = useRef(0);
   const busy = useRef(false);
 
-  // Ignore input while a card is mid-animation.
-  function begin() {
-    if (busy.current || count < 2) return false;
+  // One card forward (the front card flies off the top) or back (the
+  // previous card is parked above the stack, then slides down into place).
+  function step(dir: 1 | -1) {
+    const from = current.current;
+    const to = (from + dir + count) % count;
+    current.current = to;
+    if (dir > 0) {
+      setLeaving(from);
+      setIndex(to);
+    } else {
+      flushSync(() => setEntering(to));
+      // Make the browser take in the parked position now, so the slide
+      // starts there rather than from the card's place at the back.
+      document.body.getBoundingClientRect();
+      setEntering(null);
+      setIndex(to);
+    }
+  }
+
+  // Moves several cards one after the other, like that many quick swipes,
+  // ignoring input until the last one lands.
+  function run(dir: 1 | -1, steps: number) {
+    if (busy.current || count < 2 || steps < 1) return;
     busy.current = true;
-    setTimeout(() => {
+    const ms = steps > 1 ? QUICK : DURATION;
+    setDuration(ms);
+    let left = steps;
+    const tick = () => {
+      step(dir);
+      left -= 1;
+      setTimeout(left > 0 ? tick : done, ms);
+    };
+    const done = () => {
+      setLeaving(null);
       busy.current = false;
-    }, DURATION);
-    return true;
+    };
+    tick();
   }
 
-  function next() {
-    if (!begin()) return;
-    setLeaving(index);
-    setIndex((index + 1) % count);
-    setTimeout(() => setLeaving(null), DURATION);
-  }
+  const next = () => run(1, 1);
+  const prev = () => run(-1, 1);
 
-  function prev() {
-    if (!begin()) return;
-    const target = (index - 1 + count) % count;
-    // Park the card above the stack first, then let it slide down into place.
-    setEntering(target);
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        setEntering(null);
-        setIndex(target);
-      }),
-    );
+  // Later cards are ahead (swipes up), earlier ones behind (swipes down).
+  function go(target: number) {
+    const distance = target - current.current;
+    if (!distance || busy.current) return;
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      current.current = target;
+      setIndex(target);
+      return;
+    }
+    run(distance > 0 ? 1 : -1, Math.abs(distance));
   }
 
   const onKeyDown = useEffectEvent((e: KeyboardEvent) => {
@@ -102,7 +136,9 @@ export function Deck({
   }, []);
 
   return (
-    <DeckContext value={{ index, count, leaving, entering, next, prev }}>
+    <DeckContext
+      value={{ index, count, leaving, entering, duration, next, prev, go }}
+    >
       {children}
     </DeckContext>
   );
@@ -120,7 +156,7 @@ const POSES = [
 // During the Go Gators party the cards behind light up in orange and blue.
 const PARTY = ["", "gators-layer", "gators-layer gators-alt"];
 const OFFSTAGE = "translateY(-110%)";
-const EASE = "duration-450 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none";
+const EASE = "ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none";
 
 /**
  * The card stack. Swipe (or drag) up for the next card and down for the
@@ -133,7 +169,7 @@ export function DeckCards({
   cards: ReactNode[];
   label: string;
 }) {
-  const { index, count, leaving, entering, next, prev } = useDeck();
+  const { index, count, leaving, entering, duration, next, prev } = useDeck();
   const [drag, setDrag] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [height, setHeight] = useState(1);
@@ -278,6 +314,8 @@ export function DeckCards({
             party = PARTY[d];
           }
           const animate = i !== entering && !dragging;
+          // Only with a transition set: alone it would animate everything.
+          const transitionDuration = animate ? `${duration}ms` : undefined;
 
           return (
             <div
@@ -287,7 +325,12 @@ export function DeckCards({
               aria-label={`${i + 1} of ${count}`}
               inert={!front}
               className={`@container absolute inset-0 overflow-hidden rounded-[20px] bg-surface shadow-[0_1px_2px_rgb(0_0_0/0.05),0_10px_28px_-16px_rgb(0_0_0/0.25)] md:rounded-[24px] dark:ring-1 dark:ring-white/[0.06] ${party} ${animate ? `transition-[transform,opacity] ${EASE}` : ""}`}
-              style={{ transform, opacity, zIndex: z }}
+              style={{
+                transform,
+                opacity,
+                zIndex: z,
+                transitionDuration,
+              }}
             >
               <div className="size-full">
                 <FrontCardContext value={front}>{card}</FrontCardContext>
@@ -295,7 +338,7 @@ export function DeckCards({
               <div
                 aria-hidden
                 className={`pointer-events-none absolute inset-0 bg-black ${animate ? `transition-opacity ${EASE}` : ""}`}
-                style={{ opacity: dim }}
+                style={{ opacity: dim, transitionDuration }}
               />
             </div>
           );
@@ -308,16 +351,112 @@ export function DeckCards({
   );
 }
 
-export function DeckPager({ className = "" }: { className?: string }) {
-  const { index, count, next } = useDeck();
+// The pager pill (w-36 by h-9, with a 1px border), in px.
+const PILL = { w: 142, h: 34 };
+const DOT = 24;
+const INSET = (PILL.h - DOT) / 2;
+const OVERLAP = 14; // offset between stacked circles
+
+/**
+ * "1 of 4" plus a circle per card, stacked at the end of the pill. Hovering
+ * (or tapping the circles, on touch) fans them out across the pill so any
+ * card is one click away.
+ */
+export function DeckPager({
+  pages,
+  className = "",
+}: {
+  pages: { label: string; icon: string }[];
+  className?: string;
+}) {
+  const { index, count, next, go } = useDeck();
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [tapped, setTapped] = useState(false);
+  const open = hovered || focused || tapped;
+  const root = useRef<HTMLDivElement>(null);
+
+  // On touch, a tap anywhere else folds them back up.
+  useEffect(() => {
+    if (!tapped) return;
+    const close = (e: globalThis.PointerEvent) => {
+      if (!root.current?.contains(e.target as Node)) setTapped(false);
+    };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, [tapped]);
+
+  const n = pages.length;
+  const spread = (PILL.w - 2 * INSET - DOT) / Math.max(1, n - 1);
+
   return (
-    <button
-      type="button"
-      onClick={next}
-      aria-label="Next card"
-      className={`h-9 w-36 cursor-pointer rounded-full border border-muted pl-4 text-left text-[14px] text-muted transition-colors hover:border-ink hover:text-ink ${className}`}
+    <div
+      ref={root}
+      role="group"
+      aria-label="Cards"
+      className={`relative h-9 w-36 rounded-full border transition-colors ${open ? "border-ink" : "border-muted hover:border-ink"} ${className}`}
+      onPointerEnter={(e) => {
+        if (e.pointerType === "mouse") setHovered(true);
+      }}
+      onPointerLeave={(e) => {
+        if (e.pointerType === "mouse") setHovered(false);
+      }}
+      onFocus={(e) => setFocused(e.target.matches("[data-page]:focus-visible"))}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setFocused(false);
+      }}
     >
-      {index + 1} of {count}
-    </button>
+      <button
+        type="button"
+        onClick={next}
+        aria-label="Next card"
+        className="absolute inset-0 cursor-pointer rounded-full pl-4 text-left text-[14px] text-muted transition-colors hover:text-ink"
+      >
+        <span
+          className={`transition-opacity duration-200 ${open ? "opacity-0" : ""}`}
+        >
+          {index + 1} of {count}
+        </span>
+      </button>
+
+      {pages.map((page, i) => {
+        const current = i === index;
+        // Stacked at the end, or spread evenly across the pill.
+        const x = open
+          ? INSET + i * spread
+          : PILL.w - INSET - DOT - (n - 1 - i) * OVERLAP;
+        return (
+          <button
+            key={i}
+            type="button"
+            data-page
+            aria-label={`${page.label}, ${i + 1} of ${n}`}
+            aria-current={current || undefined}
+            onClick={() => {
+              // On touch the first tap fans the circles out to choose from.
+              if (open) {
+                setTapped(false);
+                go(i);
+              } else {
+                setTapped(true);
+              }
+            }}
+            className={`absolute top-0 left-0 flex size-6 cursor-pointer items-center justify-center rounded-full border transition-[translate,color,background-color,border-color] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none ${
+              current
+                ? "border-ink bg-ink text-canvas"
+                : "border-muted bg-canvas text-muted hover:border-ink hover:text-ink"
+            }`}
+            style={{
+              translate: `${x}px ${INSET}px`,
+              // The current card's circle on top, the rest under it by
+              // distance, like the cards in the deck.
+              zIndex: n - Math.abs(i - index),
+            }}
+          >
+            <MaskIcon src={page.icon} className="size-3" />
+          </button>
+        );
+      })}
+    </div>
   );
 }
