@@ -107,12 +107,12 @@ export function Deck({
 const LAYERS = [
   {
     transform: "translateY(5.6%) scaleX(0.9)",
-    bg: "bg-stack gators-layer",
+    bg: "bg-layer-1 gators-layer",
     z: 30,
   },
   {
     transform: "translateY(10.2%) scaleX(0.808)",
-    bg: "bg-stone gators-layer gators-alt",
+    bg: "bg-layer-2 gators-layer gators-alt",
     z: 20,
   },
 ];

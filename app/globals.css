@@ -16,8 +16,10 @@
   /* Darker muted for small text on the island, so it stays readable over
      the glass (4.5:1 or better). */
   --color-muted-strong: #5b5652;
-  --color-stone: #cbc5bf; /* the third card and text selection */
-  --color-stack: #171717; /* the card right behind the front one */
+  /* The cards behind the front one, stepping steadily darker as they go
+     back, like cards falling into shadow. Neutral, like every surface. */
+  --color-layer-1: #989898;
+  --color-layer-2: #535353;
 
   /* Official University of Florida brand colors (brand.ufl.edu). */
   --color-gator-orange: #fa4616; /* PMS 172 */
@@ -85,9 +87,9 @@
   --color-fg: #f2f2f2;
   --color-ink: #ececec;
   --color-muted-strong: #aea8a4;
-  /* Softer than the dark ink, so the stack doesn't glare. */
-  --color-stack: #b5b5b5;
-  --color-stone: #5a5652;
+  /* Two soft charcoal steps: depth without glare. */
+  --color-layer-1: #3a3a3a;
+  --color-layer-2: #565656;
   --glass-tint: rgb(44 47 50 / 0.7);
   --glass-tint-reduced: rgb(42 44 47 / 0.8);
 }
@@ -98,8 +100,8 @@ body {
 }
 
 ::selection {
-  background: var(--color-stone);
-  color: var(--color-ink);
+  background: color-mix(in oklab, var(--color-ink) 18%, transparent);
+  color: inherit;
 }
 
 /*
