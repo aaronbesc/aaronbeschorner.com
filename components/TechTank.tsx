@@ -13,11 +13,10 @@ import type { Tool } from "@/lib/stack";
 import { useIsFrontCard } from "./Deck";
 
 // The tech stack as a glass tank filling the card: the tools are capsules
-// lying in a pile under gravity. Hovering the card lines them up in two rows,
+// lying in a pile under gravity. Hovering the card lines them up in rows,
 // and hovering one keeps it in color while the rest go gray.
 
 const STEP = 1 / 120; // fixed physics step, in seconds
-const ROWS = 2;
 
 type Body = {
   x: number;
@@ -55,16 +54,25 @@ class TankEngine {
     private calm: boolean,
   ) {}
 
-  /** Where capsule i sits when lined up: two rows, centered. */
+  /** Line-up rows: two on wide cards, four on square ones. */
+  private get rows() {
+    return this.w > this.h * 1.3 ? 2 : 4;
+  }
+
+  private get cols() {
+    return Math.ceil(this.count / this.rows);
+  }
+
+  /** Where capsule i sits when lined up: in rows, centered. */
   private slot(i: number) {
-    const cols = Math.ceil(this.count / ROWS);
+    const { rows, cols } = this;
     const row = Math.floor(i / cols);
-    const inRow = row === 0 ? cols : this.count - cols;
+    const inRow = row < rows - 1 ? cols : this.count - cols * (rows - 1);
     const span = Math.min(this.r * 2.9, (this.w * 0.86 - 2 * this.r) / (cols - 1));
     const gap = span * 0.95;
     return {
       x: this.w / 2 + (i - row * cols - (inRow - 1) / 2) * span,
-      y: this.h / 2 - gap / 2 + row * gap,
+      y: this.h / 2 + (row - (rows - 1) / 2) * gap,
     };
   }
 
@@ -80,7 +88,10 @@ class TankEngine {
     }
     this.w = width;
     this.h = height;
-    this.r = Math.max(10, Math.min(width * 0.05, height * 0.1));
+    // As big as the card allows, but small enough that a lined-up row
+    // keeps some room between capsules.
+    const fit = (width * 0.86) / (2.6 * (this.cols - 1) + 2);
+    this.r = Math.max(10, Math.min(width * 0.05, height * 0.1, fit));
     for (const c of this.capsules.current) {
       if (c) c.style.width = c.style.height = `${2 * this.r}px`;
     }

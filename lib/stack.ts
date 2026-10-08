@@ -1,5 +1,7 @@
-// The tools in the tank on the second card, in line-up order
-// (two rows: data and AI first, then web and design).
+// The tools in the tank on the second card, in line-up order. Wide cards
+// show two rows of eight: building data pipelines (code, databases,
+// transformation, orchestration), then the Microsoft platform, AI, shipping
+// and design. Square cards show the same order in four rows of four.
 export type Tool = {
   name: string;
   logo: string;
@@ -9,15 +11,19 @@ export type Tool = {
 
 export const STACK: Tool[] = [
   { name: "Python", logo: "/icons/stack/python.svg" },
+  { name: "Polars", logo: "/icons/stack/polars.svg" },
+  { name: "DuckDB", logo: "/icons/stack/duckdb.svg" },
+  { name: "PostgreSQL", logo: "/icons/stack/postgresql.svg" },
+  { name: "SQL Server", logo: "/icons/stack/sql-server.svg" },
+  { name: "dbt", logo: "/icons/stack/dbt.svg" },
+  { name: "Airflow", logo: "/icons/stack/airflow.svg" },
+  { name: "Docker", logo: "/icons/stack/docker.svg" },
   { name: "Microsoft Fabric", logo: "/icons/fabric.svg" },
+  { name: "Power BI", logo: "/icons/stack/power-bi.svg" },
   { name: "Azure ML", logo: "/icons/azure-ml.png" },
+  { name: "Claude", logo: "/icons/claude.png" },
   { name: "Git", logo: "/icons/stack/git.svg" },
   { name: "GitHub", logo: "/icons/stack/github.svg", invertInDark: true },
-  { name: "Claude", logo: "/icons/claude.png" },
-  { name: "TypeScript", logo: "/icons/stack/typescript.svg" },
-  { name: "React", logo: "/icons/stack/react.svg" },
-  { name: "Next.js", logo: "/icons/nextjs.png", invertInDark: true },
-  { name: "Tailwind CSS", logo: "/icons/stack/tailwindcss.svg" },
   { name: "Vercel", logo: "/icons/stack/vercel.svg", invertInDark: true },
   { name: "Figma", logo: "/icons/figma.png" },
 ];
