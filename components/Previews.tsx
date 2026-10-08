@@ -6,12 +6,13 @@ import { PROFILE } from "@/lib/profile";
 // Preview cards for SocialLinks, styled after each network's profile card
 // but in this site's palette, with the photos used on each network.
 
+// Contribution levels 0–4, in shades of ink so they work in both themes.
 const LEVELS = [
   "bg-ink/[0.06]",
-  "bg-accent/30",
-  "bg-accent/55",
-  "bg-accent/80",
-  "bg-accent",
+  "bg-ink/20",
+  "bg-ink/40",
+  "bg-ink/65",
+  "bg-ink/90",
 ];
 
 function Avatar({

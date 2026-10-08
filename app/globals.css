@@ -16,7 +16,7 @@
   /* Darker muted for small text on the island, so it stays readable over
      the glass (4.5:1 or better). */
   --color-muted-strong: #5b5652;
-  --color-accent: #a259ff;
+  --color-stone: #cbc5bf; /* the third card and text selection */
   --color-stack: #171717; /* the card right behind the front one */
 
   /* Official University of Florida brand colors (brand.ufl.edu). */
@@ -73,7 +73,7 @@
  * Dark palette: the light one mirrored. The canvas is the light ink and the
  * bio is the light canvas; raised surfaces (cards, pill) sit a step lighter
  * than the canvas. Text stays below pure white so it isn't harsh, and the
- * warm gray, purple accent and UF colors are shared by both themes.
+ * warm gray and UF colors are shared by both themes.
  */
 [data-theme="dark"] {
   color-scheme: dark;
@@ -87,6 +87,7 @@
   --color-muted-strong: #aea8a4;
   /* Softer than the dark ink, so the stack doesn't glare. */
   --color-stack: #b5b5b5;
+  --color-stone: #5a5652;
   --glass-tint: rgb(44 47 50 / 0.7);
   --glass-tint-reduced: rgb(42 44 47 / 0.8);
 }
@@ -97,8 +98,8 @@ body {
 }
 
 ::selection {
-  background: var(--color-accent);
-  color: #fff;
+  background: var(--color-stone);
+  color: var(--color-ink);
 }
 
 /*

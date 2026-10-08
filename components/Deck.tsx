@@ -112,7 +112,7 @@ const LAYERS = [
   },
   {
     transform: "translateY(10.2%) scaleX(0.808)",
-    bg: "bg-accent gators-layer gators-alt",
+    bg: "bg-stone gators-layer gators-alt",
     z: 20,
   },
 ];
