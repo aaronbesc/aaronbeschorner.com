@@ -189,8 +189,8 @@ body {
 }
 
 /*
- * Claw machine (TechTank). The card is the tank: a floor that darkens toward
- * the bottom, glossy capsules, and a pane of Liquid Glass in front.
+ * The tech stack tank (TechTank). The card is the tank: a floor that darkens
+ * toward the bottom, glossy capsules, and a pane of clear glass in front.
  */
 @utility tank {
   background: linear-gradient(to bottom, #f9f9f9, #e8e8e8);
@@ -219,15 +219,11 @@ body {
 }
 
 /*
- * Liquid Glass, after Apple's material. Clear, with:
- *  - lensing: what's behind bends near the edges, like the rim of a thick
- *    pane (an SVG displacement filter in TechTank, shaped to the card);
- *  - a specular highlight that follows the light, here the pointer
- *    (--gx, --gy), on the surface and on the part of the rim nearest it;
- *  - thickness: a soft bright band just inside the edge;
- *  - faint reflections drifting against the pointer (--glare).
+ * The tank's glass: clear, with a soft highlight where the light (the
+ * pointer: --gx, --gy) falls on it, and faint reflections drifting against
+ * the pointer (--glare).
  */
-@utility liquid-glass {
+@utility tank-glass {
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -238,9 +234,6 @@ body {
     rgb(255 255 255 / 0.18),
     transparent 40%
   );
-  box-shadow:
-    inset 0 0 2px rgb(255 255 255 / 0.7),
-    inset 0 0 12px rgb(255 255 255 / 0.35);
 
   &::before {
     content: "";
@@ -260,44 +253,15 @@ body {
     transition: translate 250ms ease-out;
   }
 
-  /* The rim: a thin edge, brightest where the light is. */
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    padding: 1.5px;
-    border-radius: inherit;
-    background: radial-gradient(
-      circle at var(--gx, 28%) var(--gy, 10%),
-      rgb(255 255 255 / 0.95),
-      rgb(255 255 255 / 0.3) 40%,
-      rgb(255 255 255 / 0.1) 75%
-    );
-    -webkit-mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask:
-      linear-gradient(#000 0 0) content-box exclude,
-      linear-gradient(#000 0 0);
-  }
-
   [data-theme="dark"] & {
     background: radial-gradient(
       circle at var(--gx, 28%) var(--gy, 10%),
       rgb(255 255 255 / 0.07),
       transparent 45%
     );
-    box-shadow:
-      inset 0 0 3px rgb(255 255 255 / 0.18),
-      inset 0 0 26px rgb(255 255 255 / 0.06);
   }
 
   [data-theme="dark"] &::before {
     opacity: 0.25;
-  }
-
-  [data-theme="dark"] &::after {
-    opacity: 0.4;
   }
 }

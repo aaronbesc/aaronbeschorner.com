@@ -96,7 +96,7 @@ function BioCard({ socials }: { socials: Social[] }) {
   );
 }
 
-// The tech stack as a claw machine (see TechTank).
+// The tech stack as a glass tank of capsules (see TechTank).
 function StackCard() {
   return <TechTank tools={STACK} />;
 }

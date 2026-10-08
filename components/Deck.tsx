@@ -18,8 +18,6 @@ type DeckState = {
   count: number;
   leaving: number | null;
   entering: number | null;
-  /** A card is animating to its new place. */
-  moving: boolean;
   next: () => void;
   prev: () => void;
 };
@@ -32,19 +30,11 @@ function useDeck() {
   return deck;
 }
 
-const CardContext = createContext({ front: true, still: true });
+const FrontCardContext = createContext(true);
 
 /** Whether the card this is rendered in is the one in front. */
 export function useIsFrontCard() {
-  return use(CardContext).front;
-}
-
-/**
- * Whether the card is in front and at rest: not being dragged and not
- * animating. For effects too costly to redraw while the card moves.
- */
-export function useIsCardStill() {
-  return use(CardContext).still;
+  return use(FrontCardContext);
 }
 
 /** Holds which card is in front; shared by the cards and the pager. */
@@ -58,18 +48,15 @@ export function Deck({
   const [index, setIndex] = useState(0);
   const [leaving, setLeaving] = useState<number | null>(null);
   const [entering, setEntering] = useState<number | null>(null);
-  const [moving, setMoving] = useState(false);
   const busy = useRef(false);
 
   // Ignore input while a card is mid-animation.
   function begin() {
     if (busy.current || count < 2) return false;
     busy.current = true;
-    setMoving(true);
     setTimeout(() => {
       busy.current = false;
-      setMoving(false);
-    }, DURATION + 50);
+    }, DURATION);
     return true;
   }
 
@@ -115,7 +102,7 @@ export function Deck({
   }, []);
 
   return (
-    <DeckContext value={{ index, count, leaving, entering, moving, next, prev }}>
+    <DeckContext value={{ index, count, leaving, entering, next, prev }}>
       {children}
     </DeckContext>
   );
@@ -146,7 +133,7 @@ export function DeckCards({
   cards: ReactNode[];
   label: string;
 }) {
-  const { index, count, leaving, entering, moving, next, prev } = useDeck();
+  const { index, count, leaving, entering, next, prev } = useDeck();
   const [drag, setDrag] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [height, setHeight] = useState(1);
@@ -303,9 +290,7 @@ export function DeckCards({
               style={{ transform, opacity, zIndex: z }}
             >
               <div className="size-full">
-                <CardContext value={{ front, still: front && !dragging && !moving }}>
-                  {card}
-                </CardContext>
+                <FrontCardContext value={front}>{card}</FrontCardContext>
               </div>
               <div
                 aria-hidden

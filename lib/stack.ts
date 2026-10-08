@@ -1,4 +1,4 @@
-// The tools in the claw machine on the second card, in line-up order
+// The tools in the tank on the second card, in line-up order
 // (two rows: data and AI first, then web and design).
 export type Tool = {
   name: string;
