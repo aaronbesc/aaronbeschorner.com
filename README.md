@@ -1,24 +1,10 @@
-# Aaron Beschorner — personal site
+<div align="center">
 
-Next.js (App Router) + TypeScript + Tailwind CSS, deployed on Vercel. Designed in Figma.
+# [aaronbeschorner.com](https://aaronbeschorner.com)
 
-```bash
-npm install
-npm run dev     # http://localhost:3000
-npm run build   # same build Vercel runs
-```
+</div>
 
-Pushing to `main` deploys to production on Vercel.
-
-## Layout
-
-- `app/page.tsx` — the homepage: island, card deck, footer
-- `app/globals.css` — light and dark palettes, glass, Go Gators party styles
-- `app/opengraph-image.tsx` — the preview image shown when the site is shared (Inter fonts in `assets/fonts/`)
-- `components/Island.tsx` — the pill at the top and its menu (hover, tap or ⌘K / Ctrl K)
-- `components/Deck.tsx` — the swipeable card stack and its pager
-- `components/SocialLinks.tsx`, `components/Previews.tsx` — social icons and their hover previews
-- `components/GoGators.tsx` — the "Go Gators" easter egg (click "University of Florida")
-- `lib/profile.ts` — name, links and handles used across the site
-- `lib/theme.ts` — light / dark / system preference
-- `lib/` — also build-time commit info, Madrid weather (Open-Meteo) and GitHub contributions
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/homepage-dark.png">
+  <img alt="The homepage of aaronbeschorner.com" src=".github/homepage-light.png">
+</picture>

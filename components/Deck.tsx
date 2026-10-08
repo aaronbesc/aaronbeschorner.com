@@ -269,7 +269,7 @@ export function DeckCards({
               key={i}
               role="group"
               aria-roledescription="slide"
-              aria-label={`${i + 1} de ${count}`}
+              aria-label={`${i + 1} of ${count}`}
               inert={!front}
               className={`@container absolute inset-0 overflow-hidden rounded-[20px] md:rounded-[24px] ${bg} ${animate ? "transition-[transform,opacity,background-color] duration-450 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none" : ""}`}
               style={{ transform, opacity, zIndex: z }}
@@ -283,7 +283,7 @@ export function DeckCards({
           );
         })}
         <p className="sr-only" aria-live="polite">
-          {index + 1} de {count}
+          {index + 1} of {count}
         </p>
       </div>
     </div>
@@ -299,7 +299,7 @@ export function DeckPager({ className = "" }: { className?: string }) {
       aria-label="Next card"
       className={`h-9 w-36 cursor-pointer rounded-full border border-muted pl-4 text-left text-[14px] text-muted transition-colors hover:border-ink hover:text-ink ${className}`}
     >
-      {index + 1} de {count}
+      {index + 1} of {count}
     </button>
   );
 }
