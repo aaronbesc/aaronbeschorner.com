@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type confetti from "canvas-confetti";
+import { useDictionary } from "./Locale";
 
 const CHANT = "/audio/go_gators.mp3";
 
@@ -30,6 +31,7 @@ export default function GoGators({
   className?: string;
   children: ReactNode;
 }) {
+  const { gators: t } = useDictionary();
   const audio = useRef<HTMLAudioElement | null>(null);
   const cannon = useRef<Promise<typeof confetti> | null>(null);
   const frame = useRef(0);
@@ -116,7 +118,7 @@ export default function GoGators({
       role="button"
       tabIndex={0}
       aria-pressed={playing}
-      title={playing ? "Stop the chant" : "Go Gators!"}
+      title={playing ? t.stop : t.play}
       onPointerEnter={() => load()}
       onFocus={() => load()}
       onClick={toggle}

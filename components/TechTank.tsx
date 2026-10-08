@@ -11,6 +11,7 @@ import {
 } from "react";
 import type { Tool } from "@/lib/stack";
 import { useIsFrontCard } from "./Deck";
+import { useDictionary } from "./Locale";
 
 // The tech stack as a glass tank filling the card: the tools are capsules
 // lying in a pile under gravity. Hovering the card lines them up in rows,
@@ -255,6 +256,7 @@ const finePointer = media("(hover: hover) and (pointer: fine)");
 
 export default function TechTank({ tools }: { tools: Tool[] }) {
   const active = useIsFrontCard();
+  const { tank: t } = useDictionary();
   const calm = useSyncExternalStore(reducedMotion.subscribe, reducedMotion.get, () => false);
   const canHover = useSyncExternalStore(finePointer.subscribe, finePointer.get, () => true);
   const [sorted, setSorted] = useState(false);
@@ -347,7 +349,7 @@ export default function TechTank({ tools }: { tools: Tool[] }) {
       }}
     >
       <div ref={tank} className="absolute inset-0">
-        <ul aria-label="Tech stack" className="absolute inset-0">
+        <ul aria-label={t.label} className="absolute inset-0">
           {tools.map((tool, i) => {
             const dim = picked >= 0 && picked !== i;
             return (
@@ -394,10 +396,10 @@ export default function TechTank({ tools }: { tools: Tool[] }) {
         {picked >= 0
           ? tools[picked].name
           : lined
-            ? "my stack"
+            ? t.sorted
             : canHover
-              ? "hover to sort"
-              : "tap to sort"}
+              ? t.hover
+              : t.tap}
       </p>
     </div>
   );

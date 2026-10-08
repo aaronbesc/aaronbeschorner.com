@@ -12,6 +12,7 @@ import {
 } from "react";
 import { flushSync } from "react-dom";
 import MaskIcon from "./MaskIcon";
+import { useDictionary } from "./Locale";
 
 const DURATION = 450; // ms, for one card
 const QUICK = 260; // ms per card when jumping across several
@@ -170,6 +171,7 @@ export function DeckCards({
   label: string;
 }) {
   const { index, count, leaving, entering, duration, next, prev } = useDeck();
+  const { deck: t } = useDictionary();
   const [drag, setDrag] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [height, setHeight] = useState(1);
@@ -269,7 +271,7 @@ export function DeckCards({
           whatever height <main> gets. */}
       <div
         role="region"
-        aria-roledescription="carousel"
+        aria-roledescription={t.carousel}
         aria-label={label}
         className="relative mb-[calc(var(--w)*0.102)] aspect-square w-(--w) touch-none select-none [--w:min(100vw_-_2rem,26rem,calc((100dvh_-_260px)/1.11))] md:mb-[calc(var(--w)/1.7*0.102)] md:aspect-[1.7] md:[--w:min(100vw_-_2rem,46rem,calc((100dvh_-_260px)*1.7/1.11))] lg:[--w:min(100cqw,46rem,calc(100cqh*1.7/1.11))]"
         onPointerDown={onPointerDown}
@@ -321,8 +323,8 @@ export function DeckCards({
             <div
               key={i}
               role="group"
-              aria-roledescription="slide"
-              aria-label={`${i + 1} of ${count}`}
+              aria-roledescription={t.slide}
+              aria-label={t.position(i + 1, count)}
               inert={!front}
               className={`@container absolute inset-0 overflow-hidden rounded-[20px] bg-surface shadow-[0_1px_2px_rgb(0_0_0/0.05),0_10px_28px_-16px_rgb(0_0_0/0.25)] md:rounded-[24px] dark:ring-1 dark:ring-white/[0.06] ${party} ${animate ? `transition-[transform,opacity] ${EASE}` : ""}`}
               style={{
@@ -344,7 +346,7 @@ export function DeckCards({
           );
         })}
         <p className="sr-only" aria-live="polite">
-          {index + 1} of {count}
+          {t.position(index + 1, count)}
         </p>
       </div>
     </div>
@@ -370,6 +372,7 @@ export function DeckPager({
   className?: string;
 }) {
   const { index, count, next, go } = useDeck();
+  const { deck: t } = useDictionary();
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const [tapped, setTapped] = useState(false);
@@ -393,7 +396,7 @@ export function DeckPager({
     <div
       ref={root}
       role="group"
-      aria-label="Cards"
+      aria-label={t.cards}
       className={`relative h-9 w-36 rounded-full border transition-colors ${open ? "border-ink" : "border-muted hover:border-ink"} ${className}`}
       onPointerEnter={(e) => {
         if (e.pointerType === "mouse") setHovered(true);
@@ -409,13 +412,13 @@ export function DeckPager({
       <button
         type="button"
         onClick={next}
-        aria-label="Next card"
+        aria-label={t.next}
         className="absolute inset-0 cursor-pointer rounded-full pl-4 text-left text-[14px] text-muted transition-colors hover:text-ink"
       >
         <span
           className={`transition-opacity duration-200 ${open ? "opacity-0" : ""}`}
         >
-          {index + 1} of {count}
+          {t.position(index + 1, count)}
         </span>
       </button>
 
@@ -430,7 +433,7 @@ export function DeckPager({
             key={i}
             type="button"
             data-page
-            aria-label={`${page.label}, ${i + 1} of ${n}`}
+            aria-label={`${page.label}, ${t.position(i + 1, n)}`}
             aria-current={current || undefined}
             onClick={() => {
               // On touch the first tap fans the circles out to choose from.

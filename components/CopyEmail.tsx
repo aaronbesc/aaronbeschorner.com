@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import MaskIcon from "./MaskIcon";
+import { useDictionary } from "./Locale";
 
 export default function CopyEmail({ email }: { email: string }) {
+  const { email: t } = useDictionary();
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -20,7 +22,7 @@ export default function CopyEmail({ email }: { email: string }) {
     <button
       type="button"
       onClick={copy}
-      aria-label={`Copy email address ${email}`}
+      aria-label={t.copy(email)}
       className="inline-flex h-[2.4em] cursor-pointer items-center gap-[0.6em] rounded-[0.35em] border border-muted px-[0.9em] text-muted transition-colors hover:border-ink hover:bg-ink hover:text-surface focus-visible:border-ink focus-visible:bg-ink focus-visible:text-surface focus-visible:outline-none gators-button"
     >
       <span className="grid">
@@ -32,12 +34,12 @@ export default function CopyEmail({ email }: { email: string }) {
         <span
           className={`col-start-1 row-start-1 text-center ${copied ? "" : "invisible"}`}
         >
-          copied!
+          {t.copied}
         </span>
       </span>
       <MaskIcon src="/icons/copy.png" className="size-[1.2em]" />
       <span className="sr-only" aria-live="polite">
-        {copied ? "Email copied to clipboard" : ""}
+        {copied ? t.announced : ""}
       </span>
     </button>
   );

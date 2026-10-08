@@ -1,6 +1,7 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
 import type { Contributions } from "@/lib/github";
+import type { Dictionary } from "@/lib/i18n";
 import { PROFILE } from "@/lib/profile";
 
 // Preview cards for SocialLinks, styled after each network's profile card
@@ -84,7 +85,13 @@ function ProfileCard({
   );
 }
 
-export function GithubPreview({ contributions }: { contributions: Contributions | null }) {
+export function GithubPreview({
+  t,
+  contributions,
+}: {
+  t: Dictionary;
+  contributions: Contributions | null;
+}) {
   return (
     <div className="flex flex-col gap-3 p-3">
       <div className="flex items-center gap-2.5">
@@ -93,7 +100,7 @@ export function GithubPreview({ contributions }: { contributions: Contributions 
           <p className="font-medium">{PROFILE.github}</p>
           <p className="font-mono text-[11px] font-light text-muted">
             {contributions
-              ? `${contributions.total} contributions in the last year`
+              ? t.previews.contributions(contributions.total)
               : `github.com/${PROFILE.github}`}
           </p>
         </div>
@@ -117,7 +124,7 @@ export function GithubPreview({ contributions }: { contributions: Contributions 
   );
 }
 
-export function LinkedinPreview() {
+export function LinkedinPreview({ t }: { t: Dictionary }) {
   return (
     <ProfileCard
       banner="/images/linkedin/background.jpg"
@@ -126,17 +133,17 @@ export function LinkedinPreview() {
       title={PROFILE.name}
       lines={
         <>
-          {PROFILE.headline}
+          {t.headline}
           <br />
-          {PROFILE.location}
+          {t.location}
         </>
       }
-      action={<Action href={PROFILE.linkedin}>Connect</Action>}
+      action={<Action href={PROFILE.linkedin}>{t.previews.connect}</Action>}
     />
   );
 }
 
-export function XPreview() {
+export function XPreview({ t }: { t: Dictionary }) {
   return (
     <ProfileCard
       banner="/images/x/background.jpg"
@@ -147,10 +154,10 @@ export function XPreview() {
         <>
           @{PROFILE.x}
           <br />
-          {PROFILE.headline}
+          {t.headline}
         </>
       }
-      action={<Action href={`https://x.com/${PROFILE.x}`}>Follow</Action>}
+      action={<Action href={`https://x.com/${PROFILE.x}`}>{t.previews.follow}</Action>}
     />
   );
 }

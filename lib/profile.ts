@@ -1,9 +1,8 @@
 // Who this site is about, shared by the page, the island and the social
-// previews.
+// previews. Text that changes with the language is in lib/i18n.ts.
 export const PROFILE = {
   name: "Aaron Beschorner",
-  headline: "Data Engineer at Intempo",
-  location: "Madrid, Spain",
+  site: "https://aaronbeschorner.com",
   email: "aaronbeschorner@gmail.com",
   github: "aaronbesc",
   linkedin: "https://www.linkedin.com/in/aaron-beschorner/",

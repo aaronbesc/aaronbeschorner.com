@@ -11,6 +11,7 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import Image from "next/image";
+import Link from "next/link";
 import {
   useEffect,
   useEffectEvent,
@@ -20,7 +21,9 @@ import {
   type ComponentType,
   type SVGProps,
 } from "react";
+import { HOME, LANGUAGE_NAMES, LOCALES } from "@/lib/i18n";
 import { PROFILE } from "@/lib/profile";
+import { useDictionary, useLocale } from "./Locale";
 import MaskIcon from "./MaskIcon";
 import {
   getTheme,
@@ -43,6 +46,10 @@ type Item = {
   soon?: boolean;
   /** Theme to switch to; other items just close the menu. */
   theme?: Theme;
+  /** Another page to go to, such as the site in another language. */
+  href?: string;
+  /** The item's language, when it differs from the page's. */
+  lang?: string;
 };
 type Section = { label: string; columns?: 2 | 3; items: Item[] };
 
@@ -60,6 +67,8 @@ const noSubscribe = () => () => {};
  * menu with the pages, language and theme.
  */
 export default function Island() {
+  const lang = useLocale();
+  const { island: t, location } = useDictionary();
   const [open, setOpen] = useState(false);
   const theme = useSyncExternalStore(subscribeTheme, getTheme, (): Theme => "system");
   // null until hydrated, since the server can't know the visitor's OS.
@@ -142,32 +151,34 @@ export default function Island() {
 
   const sections: Section[] = [
     {
-      label: "Menu",
+      label: t.sections.menu,
       items: [
-        { label: "Home", icon: HomeIcon, current: true },
-        { label: "Projects", icon: RectangleStackIcon, soon: true },
-        { label: "Writing", icon: PencilSquareIcon, soon: true },
+        { label: t.home, icon: HomeIcon, current: true },
+        { label: t.projects, icon: RectangleStackIcon, soon: true },
+        { label: t.writing, icon: PencilSquareIcon, soon: true },
       ],
     },
     {
-      label: "Language",
+      label: t.sections.language,
       columns: 2,
-      items: [
-        { label: "English", current: true },
-        { label: "Español", soon: true },
-      ],
+      items: LOCALES.map((locale) => ({
+        label: LANGUAGE_NAMES[locale],
+        current: locale === lang,
+        href: locale === lang ? undefined : HOME[locale],
+        lang: locale === lang ? undefined : locale,
+      })),
     },
     {
-      label: "Theme",
+      label: t.sections.theme,
       columns: 3,
       items: (
         [
-          ["light", "Light", SunIcon],
-          ["dark", "Dark", MoonIcon],
-          ["system", "System", ComputerDesktopIcon],
+          ["light", SunIcon],
+          ["dark", MoonIcon],
+          ["system", ComputerDesktopIcon],
         ] as const
-      ).map(([value, label, icon]) => ({
-        label,
+      ).map(([value, icon]) => ({
+        label: t.themes[value],
         icon,
         current: theme === value,
         theme: value,
@@ -197,7 +208,7 @@ export default function Island() {
         <button
           ref={trigger}
           type="button"
-          aria-label="Menu"
+          aria-label={t.menu}
           aria-expanded={open}
           aria-controls="island-menu"
           onPointerDown={(e) => (lastPointer.current = e.pointerType)}
@@ -225,7 +236,7 @@ export default function Island() {
                 src="/icons/location.svg"
                 className="h-[1em] w-[0.8em] text-muted"
               />
-              {PROFILE.location}
+              {location}
             </span>
           </span>
           <kbd className="relative ml-auto hidden h-[26px] w-[48px] shrink-0 items-center justify-center font-sans text-[11px] font-medium text-muted-strong md:flex">
@@ -260,7 +271,7 @@ export default function Island() {
         >
           <div className="min-h-0">
             <nav
-              aria-label="Site"
+              aria-label={t.site}
               className={`flex flex-col px-1.5 pb-1.5 transition-[opacity,filter] ${
                 open
                   ? "opacity-100 delay-100 duration-300"
@@ -287,6 +298,7 @@ export default function Island() {
                         key={item.label}
                         item={item}
                         centered={!!section.columns}
+                        soonLabel={t.soon}
                         onSelect={() => select(item)}
                       />
                     ))}
@@ -304,13 +316,15 @@ export default function Island() {
 function MenuItem({
   item,
   centered,
+  soonLabel,
   onSelect,
 }: {
   item: Item;
   centered: boolean;
+  soonLabel: string;
   onSelect: () => void;
 }) {
-  const { label, icon: Icon, current, soon } = item;
+  const { label, icon: Icon, current, soon, href, lang } = item;
   const layout = `flex items-center gap-2 rounded-xl px-2.5 py-2 text-[13px] ${centered ? "justify-center" : ""}`;
   const content = (
     <>
@@ -324,9 +338,24 @@ function MenuItem({
       <span aria-disabled className={`${layout} cursor-default text-muted`}>
         {content}
         <span className={`font-mono text-[10px] font-light ${centered ? "" : "ml-auto"}`}>
-          soon
+          {soonLabel}
         </span>
       </span>
+    );
+  }
+  const interactive = `${layout} cursor-pointer outline-none hover:bg-ink/5 focus-visible:bg-ink/5`;
+  if (href) {
+    return (
+      <Link
+        href={href}
+        hrefLang={lang}
+        lang={lang}
+        data-menu-item
+        onClick={onSelect}
+        className={interactive}
+      >
+        {content}
+      </Link>
     );
   }
   return (
@@ -335,9 +364,7 @@ function MenuItem({
       data-menu-item
       aria-current={current || undefined}
       onClick={onSelect}
-      className={`${layout} cursor-pointer outline-none hover:bg-ink/5 focus-visible:bg-ink/5 ${
-        current ? "bg-chip" : ""
-      }`}
+      className={`${interactive} ${current ? "bg-chip" : ""}`}
     >
       {content}
     </button>
