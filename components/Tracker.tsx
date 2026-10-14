@@ -32,7 +32,7 @@ import {
   type Field,
   type StatusChange,
 } from "@/lib/applications";
-import { pillClass, statusColor } from "@/lib/status";
+import { pillClass } from "@/lib/status";
 
 // The job application tracker (app/admin/applications). Every cell edits
 // in place and saves when it loses focus; the list updates right away and
@@ -93,6 +93,12 @@ const pillButton =
   "rounded-full px-3.5 py-1.5 text-[14px] transition-colors hover:bg-pill";
 const field =
   "rounded-full bg-surface px-4 py-2 text-[15px] outline-none placeholder:text-muted focus:ring-2 focus:ring-ink/20";
+// The homepage's card: a white surface lifted by a soft shadow, and a
+// hairline ring in dark mode instead.
+const card =
+  "rounded-2xl bg-surface shadow-[0_1px_2px_rgb(0_0_0/0.05),0_10px_28px_-16px_rgb(0_0_0/0.25)] dark:ring-1 dark:ring-white/[0.06]";
+
+const applications = (n: number) => (n === 1 ? "1 application" : `${n} applications`);
 
 export default function Tracker({
   initial,
@@ -266,7 +272,7 @@ export default function Tracker({
         <div>
           <h1 className="text-[28px] font-medium">Applications</h1>
           <p className="mt-1 font-mono text-[14px] font-light text-muted">
-            {apps.length} total · {apps.filter((a) => a.referral).length} with a referral
+            {applications(apps.length)}, {apps.filter((a) => a.referral).length} with a referral
           </p>
         </div>
         <div className="flex gap-1">
@@ -281,7 +287,7 @@ export default function Tracker({
         </div>
       </header>
 
-      <Pipeline apps={apps} history={history} />
+      <Pipeline apps={apps} history={history} className={`mt-6 ${card}`} />
 
       <nav aria-label="Filter by status" className="mt-6 flex flex-wrap gap-2">
         <Chip active={!filter} onClick={() => setFilter(null)} count={apps.length}>
@@ -295,7 +301,6 @@ export default function Tracker({
               active={filter === status}
               onClick={() => setFilter(filter === status ? null : status)}
               count={counts.get(status)!}
-              dot={statusColor(status)}
             >
               {status}
             </Chip>
@@ -348,7 +353,7 @@ export default function Tracker({
       )}
 
       {/* Wide screens: the table. */}
-      <div className="mt-6 hidden rounded-2xl bg-surface xl:block">
+      <div className={`mt-6 hidden xl:block ${card}`}>
         <table ref={table} className="w-full table-fixed border-collapse text-left text-[14px]">
           <colgroup>
             {COLUMNS.map(({ key }) => (
@@ -406,7 +411,7 @@ export default function Tracker({
             ))}
           </ul>
         ) : (
-          <div className="rounded-2xl bg-surface">
+          <div className={card}>
             <Empty any={apps.length > 0} />
           </div>
         )}
@@ -561,13 +566,11 @@ function Chip({
   active,
   onClick,
   count,
-  dot,
   children,
 }: {
   active: boolean;
   onClick: () => void;
   count: number;
-  dot?: string;
   children: ReactNode;
 }) {
   return (
@@ -575,13 +578,13 @@ function Chip({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[14px] transition-colors ${
+      className={`flex items-baseline gap-1.5 rounded-full px-3.5 py-1.5 text-[14px] transition-colors ${
         active ? "bg-ink text-canvas" : "bg-surface hover:bg-pill"
       }`}
     >
-      {dot && <span aria-hidden className="size-2 rounded-full" style={{ background: dot }} />}
-      <span>
-        {children} <span className={active ? "opacity-60" : "text-muted"}>{count}</span>
+      {children}
+      <span className={`font-mono text-[12px] font-light ${active ? "opacity-60" : "text-muted"}`}>
+        {count}
       </span>
     </button>
   );
@@ -745,7 +748,7 @@ function Row({ app, statuses, save, remove }: RowProps) {
 function Card({ app, statuses, save, remove }: RowProps) {
   const label = "w-20 shrink-0 px-2 text-[13px] text-muted";
   return (
-    <li className="min-w-0 rounded-2xl bg-surface p-2 text-[14px]">
+    <li className={`min-w-0 p-2 text-[14px] ${card}`}>
       <div className="flex items-start gap-1">
         <div className="min-w-0 flex-1">
           <Text app={app} field="company" label="Company" save={save} className="text-[16px] font-medium" />

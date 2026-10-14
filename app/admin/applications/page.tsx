@@ -4,7 +4,7 @@ import { isOwner } from "@/auth";
 import Tracker from "@/components/Tracker";
 import { listApplications, listStatusChanges } from "@/lib/db";
 
-export const metadata: Metadata = { title: "Applications · Aaron Beschorner" };
+export const metadata: Metadata = { title: "Applications" };
 
 export default async function Applications() {
   if (!(await isOwner())) redirect("/admin/login");

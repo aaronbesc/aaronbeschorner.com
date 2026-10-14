@@ -73,7 +73,6 @@
   --status-violet: #6250d6;
   --status-magenta: #e87ba4;
   --status-orange: #eb6834;
-  --status-applied: #5b5652;
   /* Island glass: over the canvas these composite to exactly the pill color. */
   --glass-tint: rgb(228 231 232 / 0.7);
   --glass-tint-reduced: rgb(229 231 232 / 0.8);
@@ -95,7 +94,6 @@
   --status-violet: #9085e9;
   --status-magenta: #d55181;
   --status-orange: #d95926;
-  --status-applied: #aea8a4;
   --color-canvas: #171717;
   --color-surface: #202020;
   --color-pill: #26282a;

@@ -41,7 +41,8 @@ export function pipeline(
   const values = new Map<string, Flow>();
   const next = new Map<string, Set<string>>(); // edges so far, to keep out loops
 
-  // Whether `to` already leads back to `from`; an edge from → to would loop.
+  // Whether `to` already leads back to `from`, so an edge between them
+  // would make a loop.
   const loops = (from: string, to: string) => {
     const stack = [to];
     const seen = new Set<string>();
@@ -61,8 +62,8 @@ export function pipeline(
     for (const to of pathOf(app, statuses.get(app.id) ?? [])) {
       const key = `${from}\u0000${to}`;
       if (!values.has(key)) {
-        // Two applications that went A → B and B → A can't both be drawn
-        // left to right; the later one stops at A.
+        // Two applications that went from A to B and from B to A can't both
+        // be drawn left to right; the later one stops at A.
         if (loops(from, to)) break;
         next.set(from, (next.get(from) ?? new Set()).add(to));
         values.set(key, { source: from, target: to, value: 0 });

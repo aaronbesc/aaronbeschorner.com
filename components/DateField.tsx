@@ -120,7 +120,7 @@ export default function DateField({
         aria-label={ariaLabel}
         onToggle={(e) => setOpen(e.newState === "open")}
         style={position}
-        className="date-picker fixed inset-auto m-0 rounded-2xl border-0 bg-surface p-3 text-ink shadow-[0_12px_40px_rgb(0_0_0/0.18)] ring-1 ring-ink/5 dark:ring-white/10"
+        className="date-picker fixed inset-auto m-0 rounded-2xl border-0 bg-surface p-3 text-ink shadow-[0_16px_40px_-12px_rgb(0_0_0/0.25)] ring-1 ring-ink/[0.06]"
       >
         {open && (
           <>

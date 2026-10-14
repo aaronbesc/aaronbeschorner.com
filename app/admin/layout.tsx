@@ -21,7 +21,7 @@ const cascadia = Cascadia_Code({
 });
 
 export const metadata: Metadata = {
-  title: "Admin · Aaron Beschorner",
+  title: "Admin",
   robots: { index: false, follow: false },
 };
 
