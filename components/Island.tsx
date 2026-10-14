@@ -2,6 +2,7 @@
 
 import {
   Bars2Icon,
+  CameraIcon,
   ComputerDesktopIcon,
   HomeIcon,
   MoonIcon,
@@ -21,7 +22,7 @@ import {
   type ComponentType,
   type SVGProps,
 } from "react";
-import { HOME, LANGUAGE_NAMES, LOCALES } from "@/lib/i18n";
+import { LANGUAGE_NAMES, LOCALES, pageHref, type Page } from "@/lib/i18n";
 import { PROFILE } from "@/lib/profile";
 import { useDictionary, useLocale } from "./Locale";
 import MaskIcon from "./MaskIcon";
@@ -64,9 +65,9 @@ const noSubscribe = () => () => {};
 
 /**
  * The pill at the top. Hovering it (or tapping it, or ⌘K / Ctrl K) opens a
- * menu with the pages, language and theme.
+ * menu with the pages, language and theme. page is the one it's on.
  */
-export default function Island() {
+export default function Island({ page }: { page: Page }) {
   const lang = useLocale();
   const { island: t, location } = useDictionary();
   const [open, setOpen] = useState(false);
@@ -153,7 +154,17 @@ export default function Island() {
     {
       label: t.sections.menu,
       items: [
-        { label: t.home, icon: HomeIcon, current: true },
+        ...(
+          [
+            ["/", t.home, HomeIcon],
+            ["/styling", t.styling, CameraIcon],
+          ] as const
+        ).map(([path, label, icon]) => ({
+          label,
+          icon,
+          current: path === page,
+          href: path === page ? undefined : pageHref(lang, path),
+        })),
         { label: t.projects, icon: RectangleStackIcon, soon: true },
         { label: t.writing, icon: PencilSquareIcon, soon: true },
       ],
@@ -164,7 +175,8 @@ export default function Island() {
       items: LOCALES.map((locale) => ({
         label: LANGUAGE_NAMES[locale],
         current: locale === lang,
-        href: locale === lang ? undefined : HOME[locale],
+        // The same page, in the other language.
+        href: locale === lang ? undefined : pageHref(locale, page),
         lang: locale === lang ? undefined : locale,
       })),
     },

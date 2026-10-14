@@ -7,8 +7,20 @@ export type Locale = (typeof LOCALES)[number];
 export const hasLocale = (value: string): value is Locale =>
   (LOCALES as readonly string[]).includes(value);
 
-/** Each language's homepage: English at the root, Spanish under /es. */
-export const HOME: Record<Locale, string> = { en: "/", es: "/es" };
+/** The site's pages, by their English path. */
+export type Page = "/" | "/styling";
+
+/** A page's URL in a language: English at the root, Spanish under /es. */
+export function pageHref(locale: Locale, page: Page) {
+  if (locale === "en") return page;
+  return page === "/" ? "/es" : `/es${page}`;
+}
+
+/** Each language's homepage. */
+export const HOME: Record<Locale, string> = {
+  en: pageHref("en", "/"),
+  es: pageHref("es", "/"),
+};
 
 /** Each language's name, in that language, for the language switch. */
 export const LANGUAGE_NAMES: Record<Locale, string> = {
@@ -42,6 +54,7 @@ const en = {
     soon: "soon",
     sections: { menu: "Menu", language: "Language", theme: "Theme" },
     home: "Home",
+    styling: "Styling",
     projects: "Projects",
     writing: "Writing",
     themes: { light: "Light", dark: "Dark", system: "System" },
@@ -99,6 +112,18 @@ const en = {
 
   madeWith: "made with",
   source: "see source code",
+
+  styling: {
+    title: "Styling",
+    description:
+      "Editorials Aaron Beschorner worked on as a stylist for Strike Magazine: VISAGE, MOD, POSSE and SPORT.",
+    kicker: "styling · Strike Magazine",
+    intro: "Editorials I worked on as a stylist.",
+    contents: "Editorials",
+    photo: (title: string, i: number, n: number) => `${title}, photo ${i} of ${n}`,
+    pages: (n: number) => (n === 1 ? "1 page" : `${n} pages`),
+    back: "back home",
+  },
 };
 
 export type Dictionary = typeof en;
@@ -116,6 +141,7 @@ const es: Dictionary = {
     soon: "pronto",
     sections: { menu: "Menú", language: "Idioma", theme: "Tema" },
     home: "Inicio",
+    styling: "Estilismo",
     projects: "Proyectos",
     writing: "Escritos",
     themes: { light: "Claro", dark: "Oscuro", system: "Sistema" },
@@ -173,6 +199,18 @@ const es: Dictionary = {
 
   madeWith: "hecho con",
   source: "ver código fuente",
+
+  styling: {
+    title: "Estilismo",
+    description:
+      "Editoriales en las que Aaron Beschorner trabajó como estilista para Strike Magazine: VISAGE, MOD, POSSE y SPORT.",
+    kicker: "estilismo · Strike Magazine",
+    intro: "Editoriales en las que trabajé como estilista.",
+    contents: "Editoriales",
+    photo: (title, i, n) => `${title}, foto ${i} de ${n}`,
+    pages: (n) => (n === 1 ? "1 página" : `${n} páginas`),
+    back: "volver al inicio",
+  },
 };
 
 export const DICTIONARIES: Record<Locale, Dictionary> = { en, es };

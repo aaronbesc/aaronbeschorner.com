@@ -64,6 +64,8 @@ export default async function RootLayout({
     // suppressHydrationWarning: THEME_SCRIPT sets data-theme before React loads.
     <html
       lang={lang}
+      // Lets Next.js turn smooth scrolling off while it changes pages.
+      data-scroll-behavior="smooth"
       className={`${inter.variable} ${cascadia.variable}`}
       suppressHydrationWarning
     >

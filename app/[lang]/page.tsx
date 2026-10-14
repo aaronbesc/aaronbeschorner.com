@@ -227,7 +227,7 @@ export default async function Home({
       {/* Holds the closed island's place; the open menu overlays the page.
           No z-index here: the island's glass must see the page behind it. */}
       <header className="relative mt-3 h-11 w-[13.5rem] shrink-0 md:h-12 md:w-[17rem] lg:mt-5">
-        <Island />
+        <Island page="/" />
       </header>
 
       {/* On small screens this region and the footer share the leftover

@@ -265,3 +265,23 @@ body {
     opacity: 0.25;
   }
 }
+
+/*
+ * Titles set like the index of Strike Magazine: Helvetica Neue Bold in
+ * capitals at its normal spacing, with lines stacked close (measured from
+ * the magazine). Arimo (loaded by the styling page) stands in where
+ * Helvetica isn't installed.
+ */
+@utility font-magazine {
+  font-family: "Helvetica Neue", Helvetica, var(--font-arimo), Arial, sans-serif;
+  font-weight: 700;
+  line-height: 0.85;
+  text-transform: uppercase;
+}
+
+/* The index on the styling page glides to each editorial. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
