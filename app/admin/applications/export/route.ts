@@ -15,7 +15,7 @@ const HEADERS = [
   "Date applied",
   "Link",
   "Notes",
-  "Creds saved",
+  "Start date",
 ];
 
 function cell(value: string | boolean) {

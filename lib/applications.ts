@@ -12,8 +12,11 @@ export type Application = {
   appliedOn: string;
   link: string;
   notes: string;
-  /** Whether this portal's login is saved in the password manager. */
-  credsSaved: boolean;
+  /**
+   * When the job would start: YYYY-MM-DD for a set day, YYYY-MM when only
+   * the month is known ("January 2027"), or "" when not set.
+   */
+  startDate: string;
 };
 
 /** Fields that can be edited after a row is created. */
@@ -47,14 +50,15 @@ export const MAX_LENGTH: Partial<Record<Field, number>> = {
 export function cleanField(field: Field, value: unknown) {
   switch (field) {
     case "referral":
-    case "credsSaved":
       return typeof value === "boolean" ? value : null;
     case "appliedOn":
+    case "startDate": {
       if (value === "") return "";
-      return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) &&
-        !Number.isNaN(Date.parse(value))
+      const shape = field === "startDate" ? /^\d{4}-\d{2}(-\d{2})?$/ : /^\d{4}-\d{2}-\d{2}$/;
+      return typeof value === "string" && shape.test(value) && !Number.isNaN(Date.parse(value))
         ? value
         : null;
+    }
     case "link": {
       if (typeof value !== "string") return null;
       const link = value.trim();
@@ -83,7 +87,7 @@ export const FIELDS: Field[] = [
   "appliedOn",
   "link",
   "notes",
-  "credsSaved",
+  "startDate",
 ];
 
 export const isField = (value: unknown): value is Field =>

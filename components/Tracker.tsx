@@ -48,9 +48,9 @@ const COLUMNS: { key: Field; label: string; width: number; center?: boolean }[] 
   { key: "status", label: "Status", width: 175 },
   { key: "email", label: "Email used", width: 180 },
   { key: "appliedOn", label: "Applied", width: 120 },
+  { key: "startDate", label: "Start", width: 135 },
   { key: "link", label: "Link", width: 140 },
-  { key: "notes", label: "Notes", width: 170 },
-  { key: "credsSaved", label: "Creds", width: 100, center: true },
+  { key: "notes", label: "Notes", width: 165 },
 ];
 
 /** Each column's share of the table, in pixels at the default size. */
@@ -62,9 +62,11 @@ const WIDTHS_KEY = "tracker-widths"; // remembered in this browser
 
 type Sort = { key: Field; desc: boolean };
 
-/** Dates and yes/no columns start newest / yes first; text starts A to Z. */
-const startsDescending = (key: Field) =>
-  key === "appliedOn" || key === "referral" || key === "credsSaved";
+/**
+ * Applied starts newest first and Referral yes first; everything else
+ * ascending, so text goes A to Z and start dates soonest first.
+ */
+const startsDescending = (key: Field) => key === "appliedOn" || key === "referral";
 
 function compare(a: Application, b: Application, { key, desc }: Sort) {
   const x = a[key];
@@ -243,7 +245,8 @@ export default function Tracker({ initial }: { initial: Application[] }) {
       setError(null);
     } catch {
       setApps((list) => list.map((app) => (app.id === id ? before : app)));
-      setError(`Couldn't save ${before.company}'s ${field}. Check the value and try again.`);
+      const name = COLUMNS.find((c) => c.key === field)!.label.toLowerCase();
+      setError(`Couldn't save ${before.company}'s ${name}. Check the value and try again.`);
     }
   }
 
@@ -703,6 +706,18 @@ function Notes({ app, save }: Pick<RowProps, "app" | "save">) {
   );
 }
 
+/** When the job would start: a day, or just a month when that's all that's known. */
+function StartDate({ app, save }: Pick<RowProps, "app" | "save">) {
+  return (
+    <DateField
+      months
+      value={app.startDate}
+      onChange={(v) => save("startDate", v)}
+      ariaLabel={`Start date, ${app.company}`}
+    />
+  );
+}
+
 function Delete({ app, remove }: Pick<RowProps, "app" | "remove">) {
   return (
     <button
@@ -742,13 +757,13 @@ function Row({ app, statuses, save, remove }: RowProps) {
         />
       </td>
       <td className="px-1 py-1">
+        <StartDate app={app} save={save} />
+      </td>
+      <td className="px-1 py-1">
         <LinkField app={app} save={save} />
       </td>
       <td className="px-1 py-1">
         <Notes app={app} save={save} />
-      </td>
-      <td className="px-1 py-1 text-center">
-        <Check checked={app.credsSaved} label={`Creds saved, ${app.company}`} onChange={(v) => save("credsSaved", v)} />
       </td>
       <td className="px-1 py-1 text-center">
         <Delete app={app} remove={remove} />
@@ -787,6 +802,12 @@ function Card({ app, statuses, save, remove }: RowProps) {
           </dd>
         </div>
         <div className="flex items-center">
+          <dt className={label}>Start</dt>
+          <dd className="min-w-0 flex-1">
+            <StartDate app={app} save={save} />
+          </dd>
+        </div>
+        <div className="flex items-center">
           <dt className={label}>Link</dt>
           <dd className="min-w-0 flex-1">
             <LinkField app={app} save={save} />
@@ -803,10 +824,6 @@ function Card({ app, statuses, save, remove }: RowProps) {
         <label className="flex cursor-pointer items-center gap-2">
           <Check checked={app.referral} label={`Referral, ${app.company}`} onChange={(v) => save("referral", v)} />
           Referral
-        </label>
-        <label className="flex cursor-pointer items-center gap-2">
-          <Check checked={app.credsSaved} label={`Creds saved, ${app.company}`} onChange={(v) => save("credsSaved", v)} />
-          Creds saved
         </label>
       </div>
     </li>

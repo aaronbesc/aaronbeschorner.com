@@ -30,7 +30,7 @@ export async function addApplication(input: { company: unknown; title: unknown }
     appliedOn: new Date().toISOString().slice(0, 10),
     link: "",
     notes: "",
-    credsSaved: false,
+    startDate: "",
   };
   const given = { company: input.company, title: input.title };
   for (const field of FIELDS) {

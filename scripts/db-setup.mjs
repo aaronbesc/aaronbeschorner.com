@@ -1,4 +1,5 @@
-// Creates the job tracker's table. Safe to run again.
+// Creates the job tracker's table, or brings an older one up to date.
+// Safe to run again.
 //   npm run db:setup   (reads DATABASE_URL from .env.local)
 import { neon } from "@neondatabase/serverless";
 
@@ -20,9 +21,15 @@ await sql`
     applied_on  date,
     link        text    NOT NULL DEFAULT '',
     notes       text    NOT NULL DEFAULT '',
-    creds_saved boolean NOT NULL DEFAULT false,
+    start_date  text,
     created_at  timestamptz NOT NULL DEFAULT now(),
     updated_at  timestamptz NOT NULL DEFAULT now()
   )
 `;
+
+// Start date replaced the "creds saved" checkbox. Text, since it can be a
+// month (2027-01) as well as a day (2027-01-12).
+await sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS start_date text`;
+await sql`ALTER TABLE applications DROP COLUMN IF EXISTS creds_saved`;
+
 console.log("applications table is ready.");

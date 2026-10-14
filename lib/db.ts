@@ -21,7 +21,7 @@ const COLUMNS: Record<Field, string> = {
   appliedOn: "applied_on",
   link: "link",
   notes: "notes",
-  credsSaved: "creds_saved",
+  startDate: "start_date",
 };
 
 type Row = {
@@ -34,7 +34,7 @@ type Row = {
   applied_on: string | null;
   link: string;
   notes: string;
-  creds_saved: boolean;
+  start_date: string | null;
 };
 
 const toApplication = (row: Row): Application => ({
@@ -47,13 +47,13 @@ const toApplication = (row: Row): Application => ({
   appliedOn: row.applied_on ?? "",
   link: row.link,
   notes: row.notes,
-  credsSaved: row.creds_saved,
+  startDate: row.start_date ?? "",
 });
 
 // applied_on is read as text so it stays a plain YYYY-MM-DD, with no time
 // zone shifting it a day.
 const SELECT = `id, company, title, referral, status, email,
-  applied_on::text AS applied_on, link, notes, creds_saved`;
+  applied_on::text AS applied_on, link, notes, start_date`;
 
 export async function listApplications() {
   const rows = await sql().query(
@@ -66,7 +66,7 @@ export async function listApplications() {
 export async function createApplication(app: Omit<Application, "id">) {
   const rows = await sql().query(
     `INSERT INTO applications
-       (company, title, referral, status, email, applied_on, link, notes, creds_saved)
+       (company, title, referral, status, email, applied_on, link, notes, start_date)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
      RETURNING ${SELECT}`,
     [
@@ -78,14 +78,14 @@ export async function createApplication(app: Omit<Application, "id">) {
       app.appliedOn || null,
       app.link,
       app.notes,
-      app.credsSaved,
+      app.startDate || null,
     ],
   );
   return toApplication((rows as Row[])[0]);
 }
 
 export async function updateApplication(id: number, field: Field, value: string | boolean) {
-  const stored = field === "appliedOn" && value === "" ? null : value;
+  const stored = (field === "appliedOn" || field === "startDate") && value === "" ? null : value;
   await sql().query(
     `UPDATE applications SET ${COLUMNS[field]} = $1, updated_at = now() WHERE id = $2`,
     [stored, id],
