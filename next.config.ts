@@ -14,6 +14,15 @@ const nextConfig: NextConfig = {
     // that match nothing is its own page: app/global-not-found.tsx.
     globalNotFound: true,
   },
+  async headers() {
+    // The private pages (app/admin) stay out of search results.
+    const noindex = [{ key: "X-Robots-Tag", value: "noindex, nofollow" }];
+    return [
+      { source: "/admin", headers: noindex },
+      { source: "/admin/:path*", headers: noindex },
+      { source: "/api/auth/:path*", headers: noindex },
+    ];
+  },
   async redirects() {
     return [
       // English lives at the root, not under /en.
