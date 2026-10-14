@@ -1,12 +1,27 @@
 "use client";
 
-import { useMemo, useState, type FormEvent, type ReactNode } from "react";
+import {
+  ChevronDownIcon,
+  ChevronUpDownIcon,
+  ChevronUpIcon,
+} from "@heroicons/react/16/solid";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+  type PointerEvent,
+  type ReactNode,
+} from "react";
 import {
   addApplication,
   editApplication,
   logOut,
   removeApplication,
 } from "@/app/admin/applications/actions";
+import DateField from "@/components/DateField";
 import {
   MAX_LENGTH,
   PRESET_STATUSES,
@@ -16,27 +31,52 @@ import {
 
 // The job application tracker (app/admin/applications). Every cell edits
 // in place and saves when it loses focus; the table updates right away and
-// rolls back if the save fails.
+// rolls back if the save fails. Any column sorts from its header, and
+// columns resize by dragging the edge between two headers, like a
+// spreadsheet (double-click the edge to reset it).
 
-type SortKey = "company" | "title" | "status" | "appliedOn";
-
-const COLUMNS: { label: string; sort?: SortKey; className?: string }[] = [
-  { label: "Company", sort: "company" },
-  { label: "Title", sort: "title" },
-  { label: "Referral", className: "text-center" },
-  { label: "Status", sort: "status" },
-  { label: "Email used" },
-  { label: "Applied", sort: "appliedOn" },
-  { label: "Link" },
-  { label: "Notes" },
-  { label: "Creds saved", className: "text-center" },
-  { label: "" },
+const COLUMNS: { key: Field; label: string; width: number; center?: boolean }[] = [
+  { key: "company", label: "Company", width: 150 },
+  { key: "title", label: "Title", width: 185 },
+  { key: "referral", label: "Referral", width: 100, center: true },
+  { key: "status", label: "Status", width: 165 },
+  { key: "email", label: "Email used", width: 180 },
+  { key: "appliedOn", label: "Applied", width: 120 },
+  { key: "link", label: "Link", width: 140 },
+  { key: "notes", label: "Notes", width: 190 },
+  { key: "credsSaved", label: "Creds", width: 100, center: true },
 ];
+
+type Widths = Record<Field, number>;
+const DEFAULT_WIDTHS = Object.fromEntries(COLUMNS.map((c) => [c.key, c.width])) as Widths;
+const MIN_WIDTH = 70;
+const ACTIONS_WIDTH = 44; // the delete column
+const WIDTHS_KEY = "tracker-widths"; // column widths, remembered in this browser
+
+type Sort = { key: Field; desc: boolean };
+
+/** Dates and yes/no columns start newest / yes first; text starts A to Z. */
+const startsDescending = (key: Field) =>
+  key === "appliedOn" || key === "referral" || key === "credsSaved";
+
+function compare(a: Application, b: Application, { key, desc }: Sort) {
+  const x = a[key];
+  const y = b[key];
+  let order: number;
+  if (typeof x === "boolean") {
+    order = Number(x) - Number(y as boolean);
+  } else {
+    // Empty cells go last whichever way the column is sorted.
+    if (!x !== !y) return x ? -1 : 1;
+    order = x.localeCompare(y as string, undefined, { sensitivity: "base", numeric: true });
+  }
+  return (desc ? -order : order) || b.id - a.id;
+}
 
 const CUSTOM = "__custom__";
 
 const cellInput =
-  "w-full min-w-0 rounded-md bg-transparent px-2 py-1.5 outline-none transition-colors hover:bg-pill focus:bg-pill";
+  "w-full min-w-0 truncate rounded-md bg-transparent px-2 py-1.5 outline-none transition-colors hover:bg-pill focus:bg-pill";
 const pillButton =
   "rounded-full px-3.5 py-1.5 text-[14px] transition-colors hover:bg-pill";
 
@@ -44,11 +84,40 @@ export default function Tracker({ initial }: { initial: Application[] }) {
   const [apps, setApps] = useState(initial);
   const [filter, setFilter] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({
-    key: "appliedOn",
-    desc: true,
-  });
+  const [sort, setSort] = useState<Sort>({ key: "appliedOn", desc: true });
+  const [widths, setWidths] = useState(DEFAULT_WIDTHS);
   const [error, setError] = useState<string | null>(null);
+
+  // Saved widths load after the first render, so it matches the server's.
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(WIDTHS_KEY) ?? "{}");
+      const valid = Object.fromEntries(
+        Object.entries(saved).filter(
+          ([key, width]) => key in DEFAULT_WIDTHS && typeof width === "number",
+        ),
+      );
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reading browser storage
+      setWidths((w) => ({ ...w, ...valid }));
+    } catch {
+      // Storage can be blocked; the default widths stay.
+    }
+  }, []);
+
+  function resize(key: Field, width: number | null) {
+    setWidths((w) => {
+      const next = {
+        ...w,
+        [key]: width === null ? DEFAULT_WIDTHS[key] : Math.max(MIN_WIDTH, Math.round(width)),
+      };
+      try {
+        localStorage.setItem(WIDTHS_KEY, JSON.stringify(next));
+      } catch {
+        // Then the widths last until reload.
+      }
+      return next;
+    });
+  }
 
   // Presets first, then custom statuses in the order they first appear.
   const statuses = useMemo(() => {
@@ -65,21 +134,16 @@ export default function Tracker({ initial }: { initial: Application[] }) {
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const rows = apps.filter(
-      (app) =>
-        (!filter || app.status === filter) &&
-        (!q ||
-          [app.company, app.title, app.email, app.notes].some((text) =>
-            text.toLowerCase().includes(q),
-          )),
-    );
-    const { key, desc } = sort;
-    return rows.sort((a, b) => {
-      // Rows without a date go last either way.
-      if (key === "appliedOn" && !a.appliedOn !== !b.appliedOn) return a.appliedOn ? -1 : 1;
-      const order = a[key].localeCompare(b[key], undefined, { sensitivity: "base" });
-      return (desc ? -order : order) || b.id - a.id;
-    });
+    return apps
+      .filter(
+        (app) =>
+          (!filter || app.status === filter) &&
+          (!q ||
+            [app.company, app.title, app.email, app.notes].some((text) =>
+              text.toLowerCase().includes(q),
+            )),
+      )
+      .sort((a, b) => compare(a, b, sort));
   }, [apps, filter, query, sort]);
 
   async function save(id: number, field: Field, value: string | boolean) {
@@ -125,8 +189,10 @@ export default function Tracker({ initial }: { initial: Application[] }) {
     }
   }
 
-  const toggleSort = (key: SortKey) =>
-    setSort((s) => ({ key, desc: s.key === key ? !s.desc : key === "appliedOn" }));
+  const toggleSort = (key: Field) =>
+    setSort((s) => ({ key, desc: s.key === key ? !s.desc : startsDescending(key) }));
+
+  const total = COLUMNS.reduce((sum, c) => sum + widths[c.key], ACTIONS_WIDTH);
 
   return (
     <main className="mx-auto max-w-[1400px] px-4 py-10 sm:px-8">
@@ -209,28 +275,43 @@ export default function Tracker({ initial }: { initial: Application[] }) {
       )}
 
       <div className="mt-6 overflow-x-auto rounded-2xl bg-surface">
-        <table className="w-full min-w-[1100px] border-collapse text-left text-[14px]">
+        {/* Fixed layout, so each column is exactly its width; the delete
+            column takes whatever room is left over. */}
+        <table
+          className="w-full table-fixed border-collapse text-left text-[14px]"
+          style={{ minWidth: total }}
+        >
+          <colgroup>
+            {COLUMNS.map(({ key }) => (
+              <col key={key} style={{ width: widths[key] }} />
+            ))}
+            <col />
+          </colgroup>
           <thead>
             <tr className="border-b border-pill text-[13px] text-muted">
-              {COLUMNS.map(({ label, sort: key, className }) => (
+              {COLUMNS.map(({ key, label, center }) => (
                 <th
-                  key={label}
+                  key={key}
                   scope="col"
-                  aria-sort={
-                    key && sort.key === key ? (sort.desc ? "descending" : "ascending") : undefined
-                  }
-                  className={`px-3 py-3 font-normal ${className ?? ""}`}
+                  aria-sort={sort.key === key ? (sort.desc ? "descending" : "ascending") : undefined}
+                  className="relative p-0 font-normal"
                 >
-                  {key ? (
-                    <button type="button" onClick={() => toggleSort(key)} className="hover:text-ink">
-                      {label}
-                      {sort.key === key && (sort.desc ? " ↓" : " ↑")}
-                    </button>
-                  ) : (
-                    label
-                  )}
+                  <SortButton
+                    label={label}
+                    center={center}
+                    direction={sort.key === key ? (sort.desc ? "desc" : "asc") : null}
+                    onClick={() => toggleSort(key)}
+                  />
+                  <Resizer
+                    label={label}
+                    width={widths[key]}
+                    onResize={(width) => resize(key, width)}
+                  />
                 </th>
               ))}
+              <th scope="col">
+                <span className="sr-only">Delete</span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -252,6 +333,105 @@ export default function Tracker({ initial }: { initial: Application[] }) {
         )}
       </div>
     </main>
+  );
+}
+
+/** A column header: the label, and on its right which way the column sorts. */
+function SortButton({
+  label,
+  center,
+  direction,
+  onClick,
+}: {
+  label: string;
+  center?: boolean;
+  direction: "asc" | "desc" | null;
+  onClick: () => void;
+}) {
+  const Icon =
+    direction === "asc" ? ChevronUpIcon : direction === "desc" ? ChevronDownIcon : ChevronUpDownIcon;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`group flex w-full items-center gap-1.5 px-3 py-3 transition-colors hover:text-ink ${
+        direction ? "text-ink" : ""
+      } ${center ? "justify-center" : "justify-between"}`}
+    >
+      <span className="truncate">{label}</span>
+      <Icon
+        aria-hidden
+        className={`size-4 shrink-0 transition-opacity ${
+          direction ? "" : "opacity-40 group-hover:opacity-100"
+        }`}
+      />
+    </button>
+  );
+}
+
+/**
+ * The draggable edge on a header's right side. Drag to resize, double-click
+ * to reset; with the keyboard, focus it and use the arrow keys.
+ */
+function Resizer({
+  label,
+  width,
+  onResize,
+}: {
+  label: string;
+  width: number;
+  onResize: (width: number | null) => void;
+}) {
+  const drag = useRef<{ x: number; width: number } | null>(null);
+  const [dragging, setDragging] = useState(false);
+
+  function down(e: PointerEvent<HTMLDivElement>) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    drag.current = { x: e.clientX, width };
+    setDragging(true);
+  }
+
+  function move(e: PointerEvent<HTMLDivElement>) {
+    if (drag.current) onResize(drag.current.width + e.clientX - drag.current.x);
+  }
+
+  function up() {
+    drag.current = null;
+    setDragging(false);
+  }
+
+  function key(e: KeyboardEvent<HTMLDivElement>) {
+    const step = e.shiftKey ? 64 : 16;
+    if (e.key === "ArrowLeft") onResize(width - step);
+    else if (e.key === "ArrowRight") onResize(width + step);
+    else return;
+    e.preventDefault();
+  }
+
+  return (
+    <div
+      role="separator"
+      aria-orientation="vertical"
+      aria-label={`Resize ${label} column`}
+      aria-valuenow={width}
+      aria-valuemin={MIN_WIDTH}
+      tabIndex={0}
+      onPointerDown={down}
+      onPointerMove={move}
+      onPointerUp={up}
+      onPointerCancel={up}
+      onDoubleClick={() => onResize(null)}
+      onKeyDown={key}
+      className="group absolute inset-y-0 -right-1.5 z-10 flex w-3 cursor-col-resize touch-none justify-center outline-none"
+    >
+      <span
+        className={`my-2 w-0.5 rounded-full transition-colors ${
+          dragging ? "bg-ink" : "bg-transparent group-hover:bg-muted group-focus-visible:bg-ink"
+        }`}
+      />
+    </div>
   );
 }
 
@@ -297,6 +477,8 @@ function Row({
       key={String(app[field])}
       type={props.type ?? "text"}
       defaultValue={app[field] as string}
+      // The whole value on hover, for when the column is too narrow.
+      title={(app[field] as string) || undefined}
       maxLength={MAX_LENGTH[field]}
       placeholder={props.placeholder}
       aria-label={`${props.label}, ${app.company}`}
@@ -307,20 +489,26 @@ function Row({
   );
 
   return (
-    <tr className="border-b border-pill last:border-0 align-top">
-      <td className="w-[13%] px-1 py-1 font-medium">{text("company", { label: "Company" })}</td>
-      <td className="w-[15%] px-1 py-1">{text("title", { label: "Title" })}</td>
+    <tr className="border-b border-pill align-top last:border-0">
+      <td className="px-1 py-1 font-medium">{text("company", { label: "Company" })}</td>
+      <td className="px-1 py-1">{text("title", { label: "Title" })}</td>
       <td className="px-1 py-1 text-center">
         <Check checked={app.referral} label={`Referral, ${app.company}`} onChange={(v) => save("referral", v)} />
       </td>
-      <td className="w-[13%] px-1 py-1">
+      <td className="px-1 py-1">
         <Status app={app} statuses={statuses} save={(v) => save("status", v)} />
       </td>
-      <td className="w-[15%] px-1 py-1">
+      <td className="px-1 py-1">
         {text("email", { type: "email", label: "Email used", placeholder: "email" })}
       </td>
-      <td className="px-1 py-1">{text("appliedOn", { type: "date", label: "Date applied" })}</td>
-      <td className="w-[12%] px-1 py-1">
+      <td className="px-1 py-1">
+        <DateField
+          value={app.appliedOn}
+          onChange={(v) => save("appliedOn", v)}
+          ariaLabel={`Date applied, ${app.company}`}
+        />
+      </td>
+      <td className="px-1 py-1">
         <div className="flex items-center">
           {text("link", { type: "url", label: "Link", placeholder: "https://" })}
           {app.link && (
@@ -336,7 +524,7 @@ function Row({
           )}
         </div>
       </td>
-      <td className="w-[22%] px-1 py-1">
+      <td className="px-1 py-1">
         <textarea
           key={app.notes}
           defaultValue={app.notes}
@@ -345,7 +533,7 @@ function Row({
           placeholder="notes"
           aria-label={`Notes, ${app.company}`}
           onBlur={(e) => save("notes", e.target.value)}
-          className={`${cellInput} field-sizing-content resize-none placeholder:text-muted/60`}
+          className={`${cellInput} field-sizing-content resize-none whitespace-pre-wrap placeholder:text-muted/60`}
         />
       </td>
       <td className="px-1 py-1 text-center">
@@ -422,6 +610,7 @@ function Status({
   return (
     <select
       value={app.status}
+      title={app.status}
       aria-label={`Status, ${app.company}`}
       onChange={(e) => (e.target.value === CUSTOM ? setCustom(true) : save(e.target.value))}
       className={`${cellInput} cursor-pointer`}
