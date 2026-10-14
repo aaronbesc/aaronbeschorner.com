@@ -1,9 +1,11 @@
 "use client";
 
 import {
+  ArrowTopRightOnSquareIcon,
   ChevronDownIcon,
   ChevronUpDownIcon,
   ChevronUpIcon,
+  XMarkIcon,
 } from "@heroicons/react/16/solid";
 import {
   useEffect,
@@ -30,28 +32,33 @@ import {
 } from "@/lib/applications";
 
 // The job application tracker (app/admin/applications). Every cell edits
-// in place and saves when it loses focus; the table updates right away and
-// rolls back if the save fails. Any column sorts from its header, and
-// columns resize by dragging the edge between two headers, like a
-// spreadsheet (double-click the edge to reset it).
+// in place and saves when it loses focus; the list updates right away and
+// rolls back if the save fails.
+//
+// On wide screens it's a table that always fits the page: column widths are
+// shares of the room there is, and dragging the edge between two headers
+// moves width from one column to its neighbor, like a spreadsheet
+// (double-click an edge to reset them all). Any column sorts from its
+// header. Narrower than that, each application becomes a card.
 
 const COLUMNS: { key: Field; label: string; width: number; center?: boolean }[] = [
   { key: "company", label: "Company", width: 150 },
   { key: "title", label: "Title", width: 185 },
-  { key: "referral", label: "Referral", width: 100, center: true },
-  { key: "status", label: "Status", width: 165 },
+  { key: "referral", label: "Referral", width: 110, center: true },
+  { key: "status", label: "Status", width: 175 },
   { key: "email", label: "Email used", width: 180 },
   { key: "appliedOn", label: "Applied", width: 120 },
   { key: "link", label: "Link", width: 140 },
-  { key: "notes", label: "Notes", width: 190 },
+  { key: "notes", label: "Notes", width: 170 },
   { key: "credsSaved", label: "Creds", width: 100, center: true },
 ];
 
+/** Each column's share of the table, in pixels at the default size. */
 type Widths = Record<Field, number>;
 const DEFAULT_WIDTHS = Object.fromEntries(COLUMNS.map((c) => [c.key, c.width])) as Widths;
-const MIN_WIDTH = 70;
-const ACTIONS_WIDTH = 44; // the delete column
-const WIDTHS_KEY = "tracker-widths"; // column widths, remembered in this browser
+const MIN_WIDTH = 64; // in real pixels, whatever the table's size
+const ACTIONS_WIDTH = 40; // the delete column
+const WIDTHS_KEY = "tracker-widths"; // remembered in this browser
 
 type Sort = { key: Field; desc: boolean };
 
@@ -73,12 +80,63 @@ function compare(a: Application, b: Application, { key, desc }: Sort) {
   return (desc ? -order : order) || b.id - a.id;
 }
 
+/*
+ * Status colors. The presets have fixed ones; a custom status gets one
+ * picked from its name, so it keeps the same color everywhere. Class names
+ * are written out in full so Tailwind finds them.
+ */
+const TONES = {
+  sky: ["bg-sky-100 text-sky-800 dark:bg-sky-400/15 dark:text-sky-300", "bg-sky-500"],
+  amber: ["bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-300", "bg-amber-500"],
+  emerald: [
+    "bg-emerald-100 text-emerald-800 dark:bg-emerald-400/15 dark:text-emerald-300",
+    "bg-emerald-500",
+  ],
+  rose: ["bg-rose-100 text-rose-800 dark:bg-rose-400/15 dark:text-rose-300", "bg-rose-500"],
+  stone: ["bg-stone-200 text-stone-700 dark:bg-stone-400/15 dark:text-stone-300", "bg-stone-400"],
+  violet: [
+    "bg-violet-100 text-violet-800 dark:bg-violet-400/15 dark:text-violet-300",
+    "bg-violet-500",
+  ],
+  teal: ["bg-teal-100 text-teal-800 dark:bg-teal-400/15 dark:text-teal-300", "bg-teal-500"],
+  pink: ["bg-pink-100 text-pink-800 dark:bg-pink-400/15 dark:text-pink-300", "bg-pink-500"],
+  indigo: [
+    "bg-indigo-100 text-indigo-800 dark:bg-indigo-400/15 dark:text-indigo-300",
+    "bg-indigo-500",
+  ],
+  lime: ["bg-lime-100 text-lime-800 dark:bg-lime-400/15 dark:text-lime-300", "bg-lime-600"],
+  cyan: ["bg-cyan-100 text-cyan-800 dark:bg-cyan-400/15 dark:text-cyan-300", "bg-cyan-500"],
+  fuchsia: [
+    "bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-400/15 dark:text-fuchsia-300",
+    "bg-fuchsia-500",
+  ],
+} as const;
+type Tone = keyof typeof TONES;
+
+const PRESET_TONES: Record<string, Tone> = {
+  "Resume Screening": "sky",
+  "Interview Offered": "amber",
+  Offer: "emerald",
+  Rejected: "rose",
+  Ghosted: "stone",
+};
+const CUSTOM_TONES: Tone[] = ["violet", "teal", "pink", "indigo", "lime", "cyan", "fuchsia"];
+
+function toneOf(status: string) {
+  if (status in PRESET_TONES) return TONES[PRESET_TONES[status]];
+  let hash = 0;
+  for (const char of status.toLowerCase()) hash = (hash * 31 + char.charCodeAt(0)) | 0;
+  return TONES[CUSTOM_TONES[Math.abs(hash) % CUSTOM_TONES.length]];
+}
+
 const CUSTOM = "__custom__";
 
 const cellInput =
   "w-full min-w-0 truncate rounded-md bg-transparent px-2 py-1.5 outline-none transition-colors hover:bg-pill focus:bg-pill";
 const pillButton =
   "rounded-full px-3.5 py-1.5 text-[14px] transition-colors hover:bg-pill";
+const field =
+  "rounded-full bg-surface px-4 py-2 text-[15px] outline-none placeholder:text-muted focus:ring-2 focus:ring-ink/20";
 
 export default function Tracker({ initial }: { initial: Application[] }) {
   const [apps, setApps] = useState(initial);
@@ -87,6 +145,8 @@ export default function Tracker({ initial }: { initial: Application[] }) {
   const [sort, setSort] = useState<Sort>({ key: "appliedOn", desc: true });
   const [widths, setWidths] = useState(DEFAULT_WIDTHS);
   const [error, setError] = useState<string | null>(null);
+  const table = useRef<HTMLTableElement>(null);
+  const drag = useRef<{ widths: Widths; scale: number } | null>(null);
 
   // Saved widths load after the first render, so it matches the server's.
   useEffect(() => {
@@ -94,7 +154,7 @@ export default function Tracker({ initial }: { initial: Application[] }) {
       const saved = JSON.parse(localStorage.getItem(WIDTHS_KEY) ?? "{}");
       const valid = Object.fromEntries(
         Object.entries(saved).filter(
-          ([key, width]) => key in DEFAULT_WIDTHS && typeof width === "number",
+          ([key, width]) => key in DEFAULT_WIDTHS && typeof width === "number" && width > 0,
         ),
       );
       // eslint-disable-next-line react-hooks/set-state-in-effect -- reading browser storage
@@ -104,19 +164,47 @@ export default function Tracker({ initial }: { initial: Application[] }) {
     }
   }, []);
 
-  function resize(key: Field, width: number | null) {
+  function storeWidths(next: Widths) {
+    try {
+      localStorage.setItem(WIDTHS_KEY, JSON.stringify(next));
+    } catch {
+      // Then the widths last until reload.
+    }
+  }
+
+  // Resizing. Widths are shares, so a drag of some pixels is converted to
+  // share units for the table's current size, taken from one column and
+  // given to the next: the table's total never changes.
+  function startResize() {
+    const sum = COLUMNS.reduce((s, c) => s + widths[c.key], ACTIONS_WIDTH);
+    const px = table.current?.getBoundingClientRect().width ?? sum;
+    drag.current = { widths, scale: sum / px };
+  }
+
+  function moveResize(index: number, dx: number) {
+    const start = drag.current;
+    if (!start) return;
+    const a = COLUMNS[index].key;
+    const b = COLUMNS[index + 1].key;
+    const min = MIN_WIDTH * start.scale;
+    const d = Math.min(
+      Math.max(dx * start.scale, min - start.widths[a]),
+      start.widths[b] - min,
+    );
+    setWidths({ ...start.widths, [a]: start.widths[a] + d, [b]: start.widths[b] - d });
+  }
+
+  function endResize() {
+    drag.current = null;
     setWidths((w) => {
-      const next = {
-        ...w,
-        [key]: width === null ? DEFAULT_WIDTHS[key] : Math.max(MIN_WIDTH, Math.round(width)),
-      };
-      try {
-        localStorage.setItem(WIDTHS_KEY, JSON.stringify(next));
-      } catch {
-        // Then the widths last until reload.
-      }
-      return next;
+      storeWidths(w);
+      return w;
     });
+  }
+
+  function resetWidths() {
+    setWidths(DEFAULT_WIDTHS);
+    storeWidths(DEFAULT_WIDTHS);
   }
 
   // Presets first, then custom statuses in the order they first appear.
@@ -192,10 +280,18 @@ export default function Tracker({ initial }: { initial: Application[] }) {
   const toggleSort = (key: Field) =>
     setSort((s) => ({ key, desc: s.key === key ? !s.desc : startsDescending(key) }));
 
-  const total = COLUMNS.reduce((sum, c) => sum + widths[c.key], ACTIONS_WIDTH);
+  const sum = COLUMNS.reduce((s, c) => s + widths[c.key], ACTIONS_WIDTH);
+  const share = (width: number) => `${(width / sum) * 100}%`;
+
+  const rowProps = (app: Application) => ({
+    app,
+    statuses,
+    save: (field: Field, value: string | boolean) => save(app.id, field, value),
+    remove: () => remove(app),
+  });
 
   return (
-    <main className="mx-auto max-w-[1400px] px-4 py-10 sm:px-8">
+    <main className="mx-auto max-w-[1600px] px-4 py-10 sm:px-8">
       <header className="flex flex-wrap items-baseline justify-between gap-4">
         <div>
           <h1 className="text-[28px] font-medium">Applications</h1>
@@ -227,13 +323,14 @@ export default function Tracker({ initial }: { initial: Application[] }) {
               active={filter === status}
               onClick={() => setFilter(filter === status ? null : status)}
               count={counts.get(status)!}
+              dot={toneOf(status)[1]}
             >
               {status}
             </Chip>
           ))}
       </nav>
 
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <form onSubmit={add} className="flex flex-col gap-2 sm:flex-row">
           <input
             name="company"
@@ -241,7 +338,7 @@ export default function Tracker({ initial }: { initial: Application[] }) {
             maxLength={MAX_LENGTH.company}
             placeholder="Company"
             aria-label="Company"
-            className="rounded-full bg-surface px-4 py-2 text-[15px] outline-none placeholder:text-muted focus:ring-2 focus:ring-ink/20"
+            className={`${field} min-w-0 sm:flex-1`}
           />
           <input
             name="title"
@@ -249,7 +346,7 @@ export default function Tracker({ initial }: { initial: Application[] }) {
             maxLength={MAX_LENGTH.title}
             placeholder="Title"
             aria-label="Title"
-            className="rounded-full bg-surface px-4 py-2 text-[15px] outline-none placeholder:text-muted focus:ring-2 focus:ring-ink/20"
+            className={`${field} min-w-0 sm:flex-1`}
           />
           <button
             type="submit"
@@ -258,14 +355,18 @@ export default function Tracker({ initial }: { initial: Application[] }) {
             Add
           </button>
         </form>
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search"
-          aria-label="Search applications"
-          className="rounded-full bg-surface px-4 py-2 text-[15px] outline-none placeholder:text-muted focus:ring-2 focus:ring-ink/20 sm:w-64"
-        />
+        <div className="flex gap-2">
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search"
+            aria-label="Search applications"
+            className={`${field} min-w-0 flex-1 lg:w-64 lg:flex-none`}
+          />
+          {/* The cards have no headers to sort from. */}
+          <SortMenu sort={sort} onChange={setSort} />
+        </div>
       </div>
 
       {error && (
@@ -274,22 +375,18 @@ export default function Tracker({ initial }: { initial: Application[] }) {
         </p>
       )}
 
-      <div className="mt-6 overflow-x-auto rounded-2xl bg-surface">
-        {/* Fixed layout, so each column is exactly its width; the delete
-            column takes whatever room is left over. */}
-        <table
-          className="w-full table-fixed border-collapse text-left text-[14px]"
-          style={{ minWidth: total }}
-        >
+      {/* Wide screens: the table. */}
+      <div className="mt-6 hidden rounded-2xl bg-surface xl:block">
+        <table ref={table} className="w-full table-fixed border-collapse text-left text-[14px]">
           <colgroup>
             {COLUMNS.map(({ key }) => (
-              <col key={key} style={{ width: widths[key] }} />
+              <col key={key} style={{ width: share(widths[key]) }} />
             ))}
-            <col />
+            <col style={{ width: share(ACTIONS_WIDTH) }} />
           </colgroup>
           <thead>
             <tr className="border-b border-pill text-[13px] text-muted">
-              {COLUMNS.map(({ key, label, center }) => (
+              {COLUMNS.map(({ key, label, center }, i) => (
                 <th
                   key={key}
                   scope="col"
@@ -302,11 +399,16 @@ export default function Tracker({ initial }: { initial: Application[] }) {
                     direction={sort.key === key ? (sort.desc ? "desc" : "asc") : null}
                     onClick={() => toggleSort(key)}
                   />
-                  <Resizer
-                    label={label}
-                    width={widths[key]}
-                    onResize={(width) => resize(key, width)}
-                  />
+                  {/* The last column's edge is the table's, which stays put. */}
+                  {i < COLUMNS.length - 1 && (
+                    <Resizer
+                      label={label}
+                      onStart={startResize}
+                      onMove={(dx) => moveResize(i, dx)}
+                      onEnd={endResize}
+                      onReset={resetWidths}
+                    />
+                  )}
                 </th>
               ))}
               <th scope="col">
@@ -316,23 +418,36 @@ export default function Tracker({ initial }: { initial: Application[] }) {
           </thead>
           <tbody>
             {shown.map((app) => (
-              <Row
-                key={app.id}
-                app={app}
-                statuses={statuses}
-                save={(field, value) => save(app.id, field, value)}
-                remove={() => remove(app)}
-              />
+              <Row key={app.id} {...rowProps(app)} />
             ))}
           </tbody>
         </table>
-        {!shown.length && (
-          <p className="px-4 py-10 text-center font-mono text-[14px] font-light text-muted">
-            {apps.length ? "no applications match" : "no applications yet. add one above."}
-          </p>
+        {!shown.length && <Empty any={apps.length > 0} />}
+      </div>
+
+      {/* Narrower: a card per application, two across on tablets. */}
+      <div className="mt-6 xl:hidden">
+        {shown.length ? (
+          <ul className="grid gap-3 md:grid-cols-2">
+            {shown.map((app) => (
+              <Card key={app.id} {...rowProps(app)} />
+            ))}
+          </ul>
+        ) : (
+          <div className="rounded-2xl bg-surface">
+            <Empty any={apps.length > 0} />
+          </div>
         )}
       </div>
     </main>
+  );
+}
+
+function Empty({ any }: { any: boolean }) {
+  return (
+    <p className="px-4 py-10 text-center font-mono text-[14px] font-light text-muted">
+      {any ? "no applications match" : "no applications yet. add one above."}
+    </p>
   );
 }
 
@@ -354,7 +469,7 @@ function SortButton({
     <button
       type="button"
       onClick={onClick}
-      className={`group flex w-full items-center gap-1.5 px-3 py-3 transition-colors hover:text-ink ${
+      className={`group flex w-full items-center gap-1 px-3 py-3 transition-colors hover:text-ink ${
         direction ? "text-ink" : ""
       } ${center ? "justify-center" : "justify-between"}`}
     >
@@ -369,45 +484,82 @@ function SortButton({
   );
 }
 
+/** Sorting for the cards: a column, and a button that flips the order. */
+function SortMenu({ sort, onChange }: { sort: Sort; onChange: (sort: Sort) => void }) {
+  const Icon = sort.desc ? ChevronDownIcon : ChevronUpIcon;
+  return (
+    <div className="flex shrink-0 items-center rounded-full bg-surface xl:hidden">
+      <select
+        value={sort.key}
+        aria-label="Sort by"
+        onChange={(e) => {
+          const key = e.target.value as Field;
+          onChange({ key, desc: startsDescending(key) });
+        }}
+        className="cursor-pointer appearance-none bg-transparent py-2 pl-4 pr-1 text-[15px] outline-none"
+      >
+        {COLUMNS.map(({ key, label }) => (
+          <option key={key} value={key} className="bg-surface text-ink">
+            {label}
+          </option>
+        ))}
+      </select>
+      <button
+        type="button"
+        onClick={() => onChange({ ...sort, desc: !sort.desc })}
+        aria-label={sort.desc ? "Sorted descending; sort ascending" : "Sorted ascending; sort descending"}
+        className="rounded-full p-2 pr-3 text-muted transition-colors hover:text-ink"
+      >
+        <Icon className="size-4" aria-hidden />
+      </button>
+    </div>
+  );
+}
+
 /**
- * The draggable edge on a header's right side. Drag to resize, double-click
- * to reset; with the keyboard, focus it and use the arrow keys.
+ * The draggable edge on a header's right side. Drag to move width between
+ * this column and the next, double-click to reset every column; with the
+ * keyboard, focus it and use the arrow keys.
  */
 function Resizer({
   label,
-  width,
-  onResize,
+  onStart,
+  onMove,
+  onEnd,
+  onReset,
 }: {
   label: string;
-  width: number;
-  onResize: (width: number | null) => void;
+  onStart: () => void;
+  onMove: (dx: number) => void;
+  onEnd: () => void;
+  onReset: () => void;
 }) {
-  const drag = useRef<{ x: number; width: number } | null>(null);
+  const x = useRef<number | null>(null);
   const [dragging, setDragging] = useState(false);
 
   function down(e: PointerEvent<HTMLDivElement>) {
     if (e.button !== 0) return;
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
-    drag.current = { x: e.clientX, width };
+    x.current = e.clientX;
+    onStart();
     setDragging(true);
   }
 
-  function move(e: PointerEvent<HTMLDivElement>) {
-    if (drag.current) onResize(drag.current.width + e.clientX - drag.current.x);
-  }
-
   function up() {
-    drag.current = null;
+    if (x.current === null) return;
+    x.current = null;
     setDragging(false);
+    onEnd();
   }
 
   function key(e: KeyboardEvent<HTMLDivElement>) {
-    const step = e.shiftKey ? 64 : 16;
-    if (e.key === "ArrowLeft") onResize(width - step);
-    else if (e.key === "ArrowRight") onResize(width + step);
-    else return;
+    const step = (e.shiftKey ? 64 : 16) * (e.key === "ArrowLeft" ? -1 : 1);
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
     e.preventDefault();
+    onStart();
+    onMove(step);
+    onEnd();
   }
 
   return (
@@ -415,14 +567,12 @@ function Resizer({
       role="separator"
       aria-orientation="vertical"
       aria-label={`Resize ${label} column`}
-      aria-valuenow={width}
-      aria-valuemin={MIN_WIDTH}
       tabIndex={0}
       onPointerDown={down}
-      onPointerMove={move}
+      onPointerMove={(e) => x.current !== null && onMove(e.clientX - x.current)}
       onPointerUp={up}
       onPointerCancel={up}
-      onDoubleClick={() => onResize(null)}
+      onDoubleClick={onReset}
       onKeyDown={key}
       className="group absolute inset-y-0 -right-1.5 z-10 flex w-3 cursor-col-resize touch-none justify-center outline-none"
     >
@@ -439,11 +589,13 @@ function Chip({
   active,
   onClick,
   count,
+  dot,
   children,
 }: {
   active: boolean;
   onClick: () => void;
   count: number;
+  dot?: string;
   children: ReactNode;
 }) {
   return (
@@ -451,47 +603,128 @@ function Chip({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`rounded-full px-3.5 py-1.5 text-[14px] transition-colors ${
+      className={`flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[14px] transition-colors ${
         active ? "bg-ink text-canvas" : "bg-surface hover:bg-pill"
       }`}
     >
-      {children} <span className={active ? "opacity-60" : "text-muted"}>{count}</span>
+      {dot && <span aria-hidden className={`size-2 rounded-full ${dot}`} />}
+      <span>
+        {children} <span className={active ? "opacity-60" : "text-muted"}>{count}</span>
+      </span>
     </button>
   );
 }
 
-function Row({
-  app,
-  statuses,
-  save,
-  remove,
-}: {
+type RowProps = {
   app: Application;
   statuses: string[];
   save: (field: Field, value: string | boolean) => void;
   remove: () => void;
+};
+
+/** One-line text cell. */
+function Text({
+  app,
+  field,
+  label,
+  type = "text",
+  placeholder,
+  save,
+  className = "",
+}: {
+  app: Application;
+  field: Field;
+  label: string;
+  type?: string;
+  placeholder?: string;
+  save: RowProps["save"];
+  className?: string;
 }) {
-  const text = (field: Field, props: { type?: string; label: string; placeholder?: string }) => (
+  const value = app[field] as string;
+  return (
     <input
       // Remounts after a save is rolled back, so the input shows the old value.
-      key={String(app[field])}
-      type={props.type ?? "text"}
-      defaultValue={app[field] as string}
+      key={value}
+      type={type}
+      defaultValue={value}
       // The whole value on hover, for when the column is too narrow.
-      title={(app[field] as string) || undefined}
+      title={value || undefined}
       maxLength={MAX_LENGTH[field]}
-      placeholder={props.placeholder}
-      aria-label={`${props.label}, ${app.company}`}
+      placeholder={placeholder}
+      aria-label={`${label}, ${app.company}`}
       onBlur={(e) => save(field, e.target.value.trim())}
       onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-      className={`${cellInput} placeholder:text-muted/60`}
+      className={`${cellInput} placeholder:text-muted/60 ${className}`}
     />
   );
+}
 
+/** The posting's link, with a button to open it. */
+function LinkField({ app, save }: Pick<RowProps, "app" | "save">) {
+  return (
+    <div className="flex min-w-0 items-center">
+      <Text app={app} field="link" label="Link" type="url" placeholder="https://" save={save} />
+      {app.link && (
+        <a
+          href={app.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`Open ${app.company} posting`}
+          className="shrink-0 rounded-md p-1.5 text-muted transition-colors hover:bg-pill hover:text-ink"
+        >
+          <ArrowTopRightOnSquareIcon className="size-3.5" aria-hidden />
+        </a>
+      )}
+    </div>
+  );
+}
+
+/** Notes grow to fit what's written, so they never scroll inside. */
+function Notes({ app, save }: Pick<RowProps, "app" | "save">) {
+  // field-sizing does it in CSS; where that's missing, size by hand.
+  const fit = (el: HTMLTextAreaElement | null) => {
+    if (!el || CSS.supports("field-sizing", "content")) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  };
+  return (
+    <textarea
+      key={app.notes}
+      ref={fit}
+      defaultValue={app.notes}
+      rows={1}
+      maxLength={MAX_LENGTH.notes}
+      placeholder="notes"
+      aria-label={`Notes, ${app.company}`}
+      onInput={(e) => fit(e.currentTarget)}
+      onBlur={(e) => save("notes", e.target.value)}
+      className={`${cellInput} block field-sizing-content resize-none overflow-hidden whitespace-pre-wrap placeholder:text-muted/60`}
+    />
+  );
+}
+
+function Delete({ app, remove }: Pick<RowProps, "app" | "remove">) {
+  return (
+    <button
+      type="button"
+      onClick={remove}
+      aria-label={`Delete ${app.company}`}
+      className="rounded-md p-1.5 text-muted transition-colors hover:bg-pill hover:text-ink"
+    >
+      <XMarkIcon className="size-4" aria-hidden />
+    </button>
+  );
+}
+
+function Row({ app, statuses, save, remove }: RowProps) {
   return (
     <tr className="border-b border-pill align-top last:border-0">
-      <td className="px-1 py-1 font-medium">{text("company", { label: "Company" })}</td>
-      <td className="px-1 py-1">{text("title", { label: "Title" })}</td>
+      <td className="px-1 py-1 font-medium">
+        <Text app={app} field="company" label="Company" save={save} />
+      </td>
+      <td className="px-1 py-1">
+        <Text app={app} field="title" label="Title" save={save} />
+      </td>
       <td className="px-1 py-1 text-center">
         <Check checked={app.referral} label={`Referral, ${app.company}`} onChange={(v) => save("referral", v)} />
       </td>
@@ -499,7 +732,7 @@ function Row({
         <Status app={app} statuses={statuses} save={(v) => save("status", v)} />
       </td>
       <td className="px-1 py-1">
-        {text("email", { type: "email", label: "Email used", placeholder: "email" })}
+        <Text app={app} field="email" label="Email used" type="email" placeholder="email" save={save} />
       </td>
       <td className="px-1 py-1">
         <DateField
@@ -509,47 +742,74 @@ function Row({
         />
       </td>
       <td className="px-1 py-1">
-        <div className="flex items-center">
-          {text("link", { type: "url", label: "Link", placeholder: "https://" })}
-          {app.link && (
-            <a
-              href={app.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={`Open ${app.company} posting`}
-              className="shrink-0 px-1.5 text-muted hover:text-ink"
-            >
-              ↗
-            </a>
-          )}
-        </div>
+        <LinkField app={app} save={save} />
       </td>
       <td className="px-1 py-1">
-        <textarea
-          key={app.notes}
-          defaultValue={app.notes}
-          rows={1}
-          maxLength={MAX_LENGTH.notes}
-          placeholder="notes"
-          aria-label={`Notes, ${app.company}`}
-          onBlur={(e) => save("notes", e.target.value)}
-          className={`${cellInput} field-sizing-content resize-none whitespace-pre-wrap placeholder:text-muted/60`}
-        />
+        <Notes app={app} save={save} />
       </td>
       <td className="px-1 py-1 text-center">
         <Check checked={app.credsSaved} label={`Creds saved, ${app.company}`} onChange={(v) => save("credsSaved", v)} />
       </td>
-      <td className="px-1 py-1">
-        <button
-          type="button"
-          onClick={remove}
-          aria-label={`Delete ${app.company}`}
-          className="rounded-md px-2 py-1.5 text-muted transition-colors hover:bg-pill hover:text-ink"
-        >
-          ×
-        </button>
+      <td className="px-1 py-1 text-center">
+        <Delete app={app} remove={remove} />
       </td>
     </tr>
+  );
+}
+
+/** The same fields as a row, as a card for narrow screens. */
+function Card({ app, statuses, save, remove }: RowProps) {
+  const label = "w-20 shrink-0 px-2 text-[13px] text-muted";
+  return (
+    <li className="min-w-0 rounded-2xl bg-surface p-2 text-[14px]">
+      <div className="flex items-start gap-1">
+        <div className="min-w-0 flex-1">
+          <Text app={app} field="company" label="Company" save={save} className="text-[16px] font-medium" />
+          <Text app={app} field="title" label="Title" save={save} className="text-muted" />
+        </div>
+        <Delete app={app} remove={remove} />
+      </div>
+      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 px-2">
+        <Status app={app} statuses={statuses} save={(v) => save("status", v)} />
+        <div className="w-36">
+          <DateField
+            value={app.appliedOn}
+            onChange={(v) => save("appliedOn", v)}
+            ariaLabel={`Date applied, ${app.company}`}
+          />
+        </div>
+      </div>
+      <dl className="mt-2 border-t border-pill pt-2">
+        <div className="flex items-center">
+          <dt className={label}>Email</dt>
+          <dd className="min-w-0 flex-1">
+            <Text app={app} field="email" label="Email used" type="email" placeholder="email" save={save} />
+          </dd>
+        </div>
+        <div className="flex items-center">
+          <dt className={label}>Link</dt>
+          <dd className="min-w-0 flex-1">
+            <LinkField app={app} save={save} />
+          </dd>
+        </div>
+        <div className="flex items-start">
+          <dt className={`${label} pt-1.5`}>Notes</dt>
+          <dd className="min-w-0 flex-1">
+            <Notes app={app} save={save} />
+          </dd>
+        </div>
+      </dl>
+      <div className="mt-1 flex gap-5 px-2 pb-1 text-[13px]">
+        <label className="flex cursor-pointer items-center gap-2">
+          <Check checked={app.referral} label={`Referral, ${app.company}`} onChange={(v) => save("referral", v)} />
+          Referral
+        </label>
+        <label className="flex cursor-pointer items-center gap-2">
+          <Check checked={app.credsSaved} label={`Creds saved, ${app.company}`} onChange={(v) => save("credsSaved", v)} />
+          Creds saved
+        </label>
+      </div>
+    </li>
   );
 }
 
@@ -568,12 +828,12 @@ function Check({
       checked={checked}
       aria-label={label}
       onChange={(e) => onChange(e.target.checked)}
-      className="mt-2 size-4 cursor-pointer accent-ink"
+      className="my-2 size-4 cursor-pointer accent-ink"
     />
   );
 }
 
-/** A menu of known statuses, with "Custom…" switching to a text field. */
+/** A colored pill menu of known statuses; "Custom…" switches to a text field. */
 function Status({
   app,
   statuses,
@@ -608,17 +868,28 @@ function Status({
   }
 
   return (
-    <select
-      value={app.status}
-      title={app.status}
-      aria-label={`Status, ${app.company}`}
-      onChange={(e) => (e.target.value === CUSTOM ? setCustom(true) : save(e.target.value))}
-      className={`${cellInput} cursor-pointer`}
-    >
-      {statuses.map((status) => (
-        <option key={status}>{status}</option>
-      ))}
-      <option value={CUSTOM}>Custom…</option>
-    </select>
+    <div className="py-1">
+      <div
+        className={`relative inline-flex max-w-full items-center rounded-full transition-[filter] hover:brightness-95 dark:hover:brightness-125 ${toneOf(app.status)[0]}`}
+      >
+        <select
+          value={app.status}
+          title={app.status}
+          aria-label={`Status, ${app.company}`}
+          onChange={(e) => (e.target.value === CUSTOM ? setCustom(true) : save(e.target.value))}
+          className="min-w-0 cursor-pointer appearance-none truncate rounded-full bg-transparent py-1 pl-3 pr-7 text-[13px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-current"
+        >
+          {statuses.map((status) => (
+            <option key={status} className="bg-surface text-ink">
+              {status}
+            </option>
+          ))}
+          <option value={CUSTOM} className="bg-surface text-ink">
+            Custom…
+          </option>
+        </select>
+        <ChevronDownIcon aria-hidden className="pointer-events-none absolute right-2 size-3.5 opacity-70" />
+      </div>
+    </div>
   );
 }
