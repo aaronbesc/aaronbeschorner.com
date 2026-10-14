@@ -2,7 +2,6 @@
 
 import {
   Bars2Icon,
-  CameraIcon,
   ComputerDesktopIcon,
   HomeIcon,
   MoonIcon,
@@ -154,17 +153,12 @@ export default function Island({ page }: { page: Page }) {
     {
       label: t.sections.menu,
       items: [
-        ...(
-          [
-            ["/", t.home, HomeIcon],
-            ["/styling", t.styling, CameraIcon],
-          ] as const
-        ).map(([path, label, icon]) => ({
-          label,
-          icon,
-          current: path === page,
-          href: path === page ? undefined : pageHref(lang, path),
-        })),
+        {
+          label: t.home,
+          icon: HomeIcon,
+          current: page === "/",
+          href: page === "/" ? undefined : pageHref(lang, "/"),
+        },
         { label: t.projects, icon: RectangleStackIcon, soon: true },
         { label: t.writing, icon: PencilSquareIcon, soon: true },
       ],
