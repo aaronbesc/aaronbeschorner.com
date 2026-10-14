@@ -62,6 +62,18 @@
 
 :root {
   color-scheme: light;
+  /* Status colors for the job tracker's chart and dots (lib/status.ts).
+     Checked as a set for color-blind separation; the dark steps below are
+     their own, checked against the dark surface. Gray is "no response". */
+  --status-blue: #2a78d6;
+  --status-yellow: #eda100;
+  --status-aqua: #1baf7a;
+  --status-red: #e34948;
+  --status-gray: #a8a29e;
+  --status-violet: #6250d6;
+  --status-magenta: #e87ba4;
+  --status-orange: #eb6834;
+  --status-applied: #5b5652;
   /* Island glass: over the canvas these composite to exactly the pill color. */
   --glass-tint: rgb(228 231 232 / 0.7);
   --glass-tint-reduced: rgb(229 231 232 / 0.8);
@@ -75,6 +87,15 @@
  */
 [data-theme="dark"] {
   color-scheme: dark;
+  --status-blue: #3987e5;
+  --status-yellow: #c98500;
+  --status-aqua: #199e70;
+  --status-red: #e34948;
+  --status-gray: #8a847f;
+  --status-violet: #9085e9;
+  --status-magenta: #d55181;
+  --status-orange: #d95926;
+  --status-applied: #aea8a4;
   --color-canvas: #171717;
   --color-surface: #202020;
   --color-pill: #26282a;

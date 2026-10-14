@@ -19,6 +19,9 @@ export type Application = {
   startDate: string;
 };
 
+/** One step in an application's status history (oldest first). */
+export type StatusChange = { applicationId: number; status: string };
+
 /** Fields that can be edited after a row is created. */
 export type Field = Exclude<keyof Application, "id">;
 

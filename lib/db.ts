@@ -1,7 +1,8 @@
 import { neon } from "@neondatabase/serverless";
-import type { Application, Field } from "@/lib/applications";
+import type { Application, Field, StatusChange } from "@/lib/applications";
 
-// The job tracker's table in Neon Postgres. DATABASE_URL comes from the
+// The job tracker's tables in Neon Postgres: applications, and
+// status_changes, every status each one has been in (for the pipeline chart). DATABASE_URL comes from the
 // Neon integration on Vercel (and .env.local for local work); the table is
 // created by scripts/db-setup.mjs. Only server code imports this file.
 
@@ -63,12 +64,29 @@ export async function listApplications() {
   return (rows as Row[]).map(toApplication);
 }
 
+export async function listStatusChanges() {
+  const rows = await sql().query(
+    `SELECT application_id AS "applicationId", status FROM status_changes
+     ORDER BY changed_at, id`,
+  );
+  return rows as StatusChange[];
+}
+
+// Writes that touch the status also record it in status_changes, in the
+// same statement so the two can't disagree.
+
 export async function createApplication(app: Omit<Application, "id">) {
   const rows = await sql().query(
-    `INSERT INTO applications
-       (company, title, referral, status, email, applied_on, link, notes, start_date)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-     RETURNING ${SELECT}`,
+    `WITH created AS (
+       INSERT INTO applications
+         (company, title, referral, status, email, applied_on, link, notes, start_date)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       RETURNING ${SELECT}
+     ), history AS (
+       INSERT INTO status_changes (application_id, status)
+       SELECT id, status FROM created
+     )
+     SELECT * FROM created`,
     [
       app.company,
       app.title,
@@ -86,6 +104,19 @@ export async function createApplication(app: Omit<Application, "id">) {
 
 export async function updateApplication(id: number, field: Field, value: string | boolean) {
   const stored = (field === "appliedOn" || field === "startDate") && value === "" ? null : value;
+  if (field === "status") {
+    await sql().query(
+      `WITH updated AS (
+         UPDATE applications SET status = $1, updated_at = now()
+         WHERE id = $2 AND status <> $1
+         RETURNING id
+       )
+       INSERT INTO status_changes (application_id, status)
+       SELECT id, $1 FROM updated`,
+      [stored, id],
+    );
+    return;
+  }
   await sql().query(
     `UPDATE applications SET ${COLUMNS[field]} = $1, updated_at = now() WHERE id = $2`,
     [stored, id],

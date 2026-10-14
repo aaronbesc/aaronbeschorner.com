@@ -32,4 +32,24 @@ await sql`
 await sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS start_date text`;
 await sql`ALTER TABLE applications DROP COLUMN IF EXISTS creds_saved`;
 
+// Every status an application has been in, for the pipeline chart. Rows
+// from before the history existed start with their current status.
+await sql`
+  CREATE TABLE IF NOT EXISTS status_changes (
+    id             integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    application_id integer NOT NULL REFERENCES applications (id) ON DELETE CASCADE,
+    status         text    NOT NULL,
+    changed_at     timestamptz NOT NULL DEFAULT now()
+  )
+`;
+await sql`
+  CREATE INDEX IF NOT EXISTS status_changes_application
+  ON status_changes (application_id, changed_at)
+`;
+await sql`
+  INSERT INTO status_changes (application_id, status, changed_at)
+  SELECT id, status, created_at FROM applications a
+  WHERE NOT EXISTS (SELECT 1 FROM status_changes c WHERE c.application_id = a.id)
+`;
+
 console.log("applications table is ready.");

@@ -24,12 +24,15 @@ import {
   removeApplication,
 } from "@/app/admin/applications/actions";
 import DateField from "@/components/DateField";
+import Pipeline from "@/components/Pipeline";
 import {
   MAX_LENGTH,
   PRESET_STATUSES,
   type Application,
   type Field,
+  type StatusChange,
 } from "@/lib/applications";
+import { pillClass, statusColor } from "@/lib/status";
 
 // The job application tracker (app/admin/applications). Every cell edits
 // in place and saves when it loses focus; the list updates right away and
@@ -82,55 +85,6 @@ function compare(a: Application, b: Application, { key, desc }: Sort) {
   return (desc ? -order : order) || b.id - a.id;
 }
 
-/*
- * Status colors. The presets have fixed ones; a custom status gets one
- * picked from its name, so it keeps the same color everywhere. Class names
- * are written out in full so Tailwind finds them.
- */
-const TONES = {
-  sky: ["bg-sky-100 text-sky-800 dark:bg-sky-400/15 dark:text-sky-300", "bg-sky-500"],
-  amber: ["bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-300", "bg-amber-500"],
-  emerald: [
-    "bg-emerald-100 text-emerald-800 dark:bg-emerald-400/15 dark:text-emerald-300",
-    "bg-emerald-500",
-  ],
-  rose: ["bg-rose-100 text-rose-800 dark:bg-rose-400/15 dark:text-rose-300", "bg-rose-500"],
-  stone: ["bg-stone-200 text-stone-700 dark:bg-stone-400/15 dark:text-stone-300", "bg-stone-400"],
-  violet: [
-    "bg-violet-100 text-violet-800 dark:bg-violet-400/15 dark:text-violet-300",
-    "bg-violet-500",
-  ],
-  teal: ["bg-teal-100 text-teal-800 dark:bg-teal-400/15 dark:text-teal-300", "bg-teal-500"],
-  pink: ["bg-pink-100 text-pink-800 dark:bg-pink-400/15 dark:text-pink-300", "bg-pink-500"],
-  indigo: [
-    "bg-indigo-100 text-indigo-800 dark:bg-indigo-400/15 dark:text-indigo-300",
-    "bg-indigo-500",
-  ],
-  lime: ["bg-lime-100 text-lime-800 dark:bg-lime-400/15 dark:text-lime-300", "bg-lime-600"],
-  cyan: ["bg-cyan-100 text-cyan-800 dark:bg-cyan-400/15 dark:text-cyan-300", "bg-cyan-500"],
-  fuchsia: [
-    "bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-400/15 dark:text-fuchsia-300",
-    "bg-fuchsia-500",
-  ],
-} as const;
-type Tone = keyof typeof TONES;
-
-const PRESET_TONES: Record<string, Tone> = {
-  "Resume Screening": "sky",
-  "Interview Offered": "amber",
-  Offer: "emerald",
-  Rejected: "rose",
-  Ghosted: "stone",
-};
-const CUSTOM_TONES: Tone[] = ["violet", "teal", "pink", "indigo", "lime", "cyan", "fuchsia"];
-
-function toneOf(status: string) {
-  if (status in PRESET_TONES) return TONES[PRESET_TONES[status]];
-  let hash = 0;
-  for (const char of status.toLowerCase()) hash = (hash * 31 + char.charCodeAt(0)) | 0;
-  return TONES[CUSTOM_TONES[Math.abs(hash) % CUSTOM_TONES.length]];
-}
-
 const CUSTOM = "__custom__";
 
 const cellInput =
@@ -140,8 +94,15 @@ const pillButton =
 const field =
   "rounded-full bg-surface px-4 py-2 text-[15px] outline-none placeholder:text-muted focus:ring-2 focus:ring-ink/20";
 
-export default function Tracker({ initial }: { initial: Application[] }) {
+export default function Tracker({
+  initial,
+  initialHistory,
+}: {
+  initial: Application[];
+  initialHistory: StatusChange[];
+}) {
   const [apps, setApps] = useState(initial);
+  const [history, setHistory] = useState(initialHistory);
   const [filter, setFilter] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>({ key: "appliedOn", desc: true });
@@ -242,6 +203,10 @@ export default function Tracker({ initial }: { initial: Application[] }) {
     setApps((list) => list.map((app) => (app.id === id ? { ...app, [field]: value } : app)));
     try {
       await editApplication(id, field, value);
+      // The server recorded the change too (lib/db.ts).
+      if (field === "status") {
+        setHistory((h) => [...h, { applicationId: id, status: value as string }]);
+      }
       setError(null);
     } catch {
       setApps((list) => list.map((app) => (app.id === id ? before : app)));
@@ -255,6 +220,7 @@ export default function Tracker({ initial }: { initial: Application[] }) {
     setApps((list) => list.filter((a) => a.id !== app.id));
     try {
       await removeApplication(app.id);
+      setHistory((h) => h.filter((c) => c.applicationId !== app.id));
       setError(null);
     } catch {
       setApps((list) => [...list, app]);
@@ -272,6 +238,7 @@ export default function Tracker({ initial }: { initial: Application[] }) {
         title: data.get("title"),
       });
       setApps((list) => [app, ...list]);
+      setHistory((h) => [...h, { applicationId: app.id, status: app.status }]);
       setError(null);
       form.reset();
       form.querySelector("input")?.focus();
@@ -314,6 +281,8 @@ export default function Tracker({ initial }: { initial: Application[] }) {
         </div>
       </header>
 
+      <Pipeline apps={apps} history={history} />
+
       <nav aria-label="Filter by status" className="mt-6 flex flex-wrap gap-2">
         <Chip active={!filter} onClick={() => setFilter(null)} count={apps.length}>
           All
@@ -326,7 +295,7 @@ export default function Tracker({ initial }: { initial: Application[] }) {
               active={filter === status}
               onClick={() => setFilter(filter === status ? null : status)}
               count={counts.get(status)!}
-              dot={toneOf(status)[1]}
+              dot={statusColor(status)}
             >
               {status}
             </Chip>
@@ -610,7 +579,7 @@ function Chip({
         active ? "bg-ink text-canvas" : "bg-surface hover:bg-pill"
       }`}
     >
-      {dot && <span aria-hidden className={`size-2 rounded-full ${dot}`} />}
+      {dot && <span aria-hidden className="size-2 rounded-full" style={{ background: dot }} />}
       <span>
         {children} <span className={active ? "opacity-60" : "text-muted"}>{count}</span>
       </span>
@@ -887,7 +856,7 @@ function Status({
   return (
     <div className="py-1">
       <div
-        className={`relative inline-flex max-w-full items-center rounded-full transition-[filter] hover:brightness-95 dark:hover:brightness-125 ${toneOf(app.status)[0]}`}
+        className={`relative inline-flex max-w-full items-center rounded-full transition-[filter] hover:brightness-95 dark:hover:brightness-125 ${pillClass(app.status)}`}
       >
         <select
           value={app.status}
