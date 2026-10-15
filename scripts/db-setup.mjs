@@ -24,6 +24,11 @@ await sql`
     link        text    NOT NULL DEFAULT '',
     notes       text    NOT NULL DEFAULT '',
     start_date  text,
+    location    text    NOT NULL DEFAULT '',
+    next_step   text    NOT NULL DEFAULT '',
+    next_step_on date,
+    source      text    NOT NULL DEFAULT '',
+    contact     text    NOT NULL DEFAULT '',
     created_at  timestamptz NOT NULL DEFAULT now(),
     updated_at  timestamptz NOT NULL DEFAULT now()
   )
@@ -37,6 +42,13 @@ await sql`ALTER TABLE applications DROP COLUMN IF EXISTS creds_saved`;
 // Workplace (Remote, Hybrid, In-person) and yearly salary in euros.
 await sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS workplace text NOT NULL DEFAULT ''`;
 await sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS salary integer`;
+
+// The details each application opens to.
+await sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS location text NOT NULL DEFAULT ''`;
+await sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS next_step text NOT NULL DEFAULT ''`;
+await sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS next_step_on date`;
+await sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT ''`;
+await sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS contact text NOT NULL DEFAULT ''`;
 
 // Every status an application has been in, for the pipeline chart. Rows
 // from before the history existed start with their current status.

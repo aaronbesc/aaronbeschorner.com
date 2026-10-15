@@ -18,6 +18,11 @@ const HEADERS = [
   "Link",
   "Notes",
   "Start date",
+  "Location",
+  "Next step",
+  "Next step date",
+  "Source",
+  "Contact",
 ];
 
 function cell(value: string | boolean) {

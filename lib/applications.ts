@@ -21,6 +21,15 @@ export type Application = {
    * the month is known ("January 2027"), or "" when not set.
    */
   startDate: string;
+  /** City or country, free text. */
+  location: string;
+  /** What happens next ("Technical interview"), and when: YYYY-MM-DD or "". */
+  nextStep: string;
+  nextStepOn: string;
+  /** Where the posting was found: one of SOURCES, or anything else. */
+  source: string;
+  /** Recruiter or referrer, free text ("Jane Doe, jane@company.com"). */
+  contact: string;
 };
 
 /** One step in an application's status history (oldest first). */
@@ -42,6 +51,9 @@ export const DEFAULT_STATUS = PRESET_STATUSES[0];
 
 export const WORKPLACES = ["Remote", "Hybrid", "In-person"];
 
+/** Suggested for Source; any other text works too. */
+export const SOURCES = ["LinkedIn", "Company website", "Referral", "Recruiter", "Job board"];
+
 /** Column limits, so a stray paste can't fill the database. */
 export const MAX_LENGTH: Partial<Record<Field, number>> = {
   company: 200,
@@ -50,6 +62,10 @@ export const MAX_LENGTH: Partial<Record<Field, number>> = {
   email: 320,
   link: 2000,
   notes: 5000,
+  location: 120,
+  nextStep: 200,
+  source: 60,
+  contact: 300,
 };
 
 /**
@@ -67,6 +83,7 @@ export function cleanField(field: Field, value: unknown) {
       if (value === "") return "";
       return typeof value === "string" && /^\d{1,9}$/.test(value) ? String(Number(value)) : null;
     case "appliedOn":
+    case "nextStepOn":
     case "startDate": {
       if (value === "") return "";
       const shape = field === "startDate" ? /^\d{4}-\d{2}(-\d{2})?$/ : /^\d{4}-\d{2}-\d{2}$/;
@@ -105,6 +122,11 @@ export const FIELDS: Field[] = [
   "link",
   "notes",
   "startDate",
+  "location",
+  "nextStep",
+  "nextStepOn",
+  "source",
+  "contact",
 ];
 
 export const isField = (value: unknown): value is Field =>

@@ -25,6 +25,11 @@ const COLUMNS: Record<Field, string> = {
   link: "link",
   notes: "notes",
   startDate: "start_date",
+  location: "location",
+  nextStep: "next_step",
+  nextStepOn: "next_step_on",
+  source: "source",
+  contact: "contact",
 };
 
 type Row = {
@@ -40,6 +45,11 @@ type Row = {
   link: string;
   notes: string;
   start_date: string | null;
+  location: string;
+  next_step: string;
+  next_step_on: string | null;
+  source: string;
+  contact: string;
 };
 
 const toApplication = (row: Row): Application => ({
@@ -55,12 +65,18 @@ const toApplication = (row: Row): Application => ({
   link: row.link,
   notes: row.notes,
   startDate: row.start_date ?? "",
+  location: row.location,
+  nextStep: row.next_step,
+  nextStepOn: row.next_step_on ?? "",
+  source: row.source,
+  contact: row.contact,
 });
 
-// applied_on is read as text so it stays a plain YYYY-MM-DD, with no time
-// zone shifting it a day; salary as text, like the app keeps it.
+// Dates are read as text so they stay a plain YYYY-MM-DD, with no time
+// zone shifting them a day; salary as text, like the app keeps it.
 const SELECT = `id, company, title, referral, status, workplace,
-  salary::text AS salary, email, applied_on::text AS applied_on, link, notes, start_date`;
+  salary::text AS salary, email, applied_on::text AS applied_on, link, notes, start_date,
+  location, next_step, next_step_on::text AS next_step_on, source, contact`;
 
 export async function listApplications() {
   const rows = await sql().query(
@@ -86,8 +102,8 @@ export async function createApplication(app: Omit<Application, "id">) {
     `WITH created AS (
        INSERT INTO applications
          (company, title, referral, status, workplace, salary, email, applied_on, link,
-          notes, start_date)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          notes, start_date, location, next_step, next_step_on, source, contact)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
        RETURNING ${SELECT}
      ), history AS (
        INSERT INTO status_changes (application_id, status)
@@ -106,6 +122,11 @@ export async function createApplication(app: Omit<Application, "id">) {
       app.link,
       app.notes,
       app.startDate || null,
+      app.location,
+      app.nextStep,
+      app.nextStepOn || null,
+      app.source,
+      app.contact,
     ],
   );
   return toApplication((rows as Row[])[0]);
@@ -113,7 +134,8 @@ export async function createApplication(app: Omit<Application, "id">) {
 
 export async function updateApplication(id: number, field: Field, value: string | boolean) {
   // Empty dates and salaries are stored as NULL.
-  const nullable = field === "appliedOn" || field === "startDate" || field === "salary";
+  const nullable =
+    field === "appliedOn" || field === "startDate" || field === "nextStepOn" || field === "salary";
   const stored = nullable && value === "" ? null : value;
   if (field === "status") {
     await sql().query(

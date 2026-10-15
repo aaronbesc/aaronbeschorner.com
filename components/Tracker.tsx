@@ -5,7 +5,6 @@ import {
   ChevronDownIcon,
   ChevronUpDownIcon,
   ChevronUpIcon,
-  XMarkIcon,
 } from "@heroicons/react/16/solid";
 import {
   useEffect,
@@ -23,11 +22,12 @@ import {
   logOut,
   removeApplication,
 } from "@/app/admin/applications/actions";
-import DateField from "@/components/DateField";
+import DateField, { formatDate } from "@/components/DateField";
 import Pipeline from "@/components/Pipeline";
 import {
   MAX_LENGTH,
   PRESET_STATUSES,
+  SOURCES,
   WORKPLACES,
   type Application,
   type Field,
@@ -35,43 +35,64 @@ import {
 } from "@/lib/applications";
 import { pillClass } from "@/lib/status";
 
-// The job application tracker (app/admin/applications). Every cell edits
-// in place and saves when it loses focus; the list updates right away and
-// rolls back if the save fails.
+// The job application tracker (app/admin/applications).
 //
-// On wide screens it's a table that always fits the page: column widths are
-// shares of the room there is, and dragging the edge between two headers
-// moves width from one column to its neighbor, like a spreadsheet
-// (double-click an edge to reset them all). Any column sorts from its
-// header. Narrower than that, each application becomes a card.
+// Each application is a row to scan: two lines of text per column, and no
+// form controls except the status pill, which changes often enough to
+// edit in place. Clicking a row opens its details, where every field is
+// edited. Edits save when a field loses focus; the list updates right away
+// and rolls back if the save fails.
+//
+// On wide screens the rows are a table that always fits the page: column
+// widths are shares of the room there is, and dragging the edge between
+// two headers moves width from one column to its neighbor, like a
+// spreadsheet (double-click an edge to reset them all). Any column sorts
+// from its header. Narrower than that, each application is a card.
 
-const COLUMNS: { key: Field; label: string; width: number; center?: boolean }[] = [
-  { key: "company", label: "Company", width: 145 },
-  { key: "title", label: "Title", width: 175 },
-  { key: "referral", label: "Referral", width: 105, center: true },
-  { key: "status", label: "Status", width: 170 },
-  { key: "workplace", label: "Workplace", width: 125 },
+const COLUMNS: { key: Field; label: string; width: number }[] = [
+  { key: "company", label: "Company", width: 250 },
+  { key: "status", label: "Status", width: 160 },
+  { key: "workplace", label: "Workplace", width: 150 },
   { key: "salary", label: "Salary", width: 110 },
-  { key: "email", label: "Email used", width: 165 },
-  { key: "appliedOn", label: "Applied", width: 115 },
-  { key: "startDate", label: "Start", width: 125 },
-  { key: "link", label: "Link", width: 120 },
-  { key: "notes", label: "Notes", width: 150 },
+  { key: "appliedOn", label: "Applied", width: 100 },
+  { key: "nextStepOn", label: "Next step", width: 220 },
 ];
 
 /** Each column's share of the table, in pixels at the default size. */
-type Widths = Record<Field, number>;
-const DEFAULT_WIDTHS = Object.fromEntries(COLUMNS.map((c) => [c.key, c.width])) as Widths;
-const MIN_WIDTH = 64; // in real pixels, whatever the table's size
-const ACTIONS_WIDTH = 40; // the delete column
-const WIDTHS_KEY = "tracker-widths"; // remembered in this browser
+type Widths = Record<string, number>;
+const DEFAULT_WIDTHS: Widths = Object.fromEntries(COLUMNS.map((c) => [c.key, c.width]));
+const MIN_WIDTH = 72; // in real pixels, whatever the table's size
+const TOGGLE_WIDTH = 44; // the column with each row's open button
+// Remembered in this browser. The name changes with the set of columns,
+// so widths saved for an older set don't carry over.
+const WIDTHS_KEY = "tracker-widths-2";
+
+/** Each field's name in messages. */
+const LABELS: Record<Field, string> = {
+  company: "company",
+  title: "title",
+  referral: "referral",
+  status: "status",
+  workplace: "workplace",
+  salary: "salary",
+  email: "email",
+  appliedOn: "applied date",
+  link: "link",
+  notes: "notes",
+  startDate: "start date",
+  location: "location",
+  nextStep: "next step",
+  nextStepOn: "next step date",
+  source: "source",
+  contact: "contact",
+};
 
 type Sort = { key: Field; desc: boolean };
 
 /**
  * Applied starts newest first, Referral yes first and Salary highest first;
- * everything else ascending, so text goes A to Z and start dates soonest
- * first. (Salaries are digits, so the numeric compare below orders them.)
+ * everything else ascending, so text goes A to Z and dates soonest first.
+ * (Salaries are digits, so the numeric compare below orders them.)
  */
 const startsDescending = (key: Field) =>
   key === "appliedOn" || key === "referral" || key === "salary";
@@ -90,14 +111,24 @@ function compare(a: Application, b: Application, { key, desc }: Sort) {
   return (desc ? -order : order) || b.id - a.id;
 }
 
-const CUSTOM = "__custom__";
+/** Whether a click landed on a control, which shouldn't also open the row. */
+const onControl = (target: EventTarget) =>
+  target instanceof Element && target.closest("button, a, input, select, textarea, label") !== null;
 
-const cellInput =
-  "w-full min-w-0 truncate rounded-md bg-transparent px-2 py-1.5 outline-none transition-colors hover:bg-pill focus:bg-pill";
+/** Digits as euros with thousands commas: "55000" reads €55,000. */
+const euros = (digits: string) => (digits ? `€${Number(digits).toLocaleString("en-US")}` : "");
+
+const CUSTOM = "__custom__";
+const SOURCE_LIST = "tracker-sources";
+
+// Form fields in the details: a soft well on the card, outlined on hover
+// and focus.
+const input =
+  "w-full min-w-0 rounded-lg bg-canvas px-2.5 py-1.5 text-[13px] outline-none ring-ink/15 transition-shadow placeholder:text-muted/70 hover:ring-1 focus:ring-1";
 const pillButton =
-  "rounded-full px-3.5 py-1.5 text-[14px] transition-colors hover:bg-pill";
+  "rounded-full px-3 py-1.5 text-[13px] transition-colors hover:bg-pill";
 const field =
-  "rounded-full bg-surface px-4 py-2 text-[15px] outline-none placeholder:text-muted focus:ring-2 focus:ring-ink/20";
+  "rounded-full bg-surface px-4 py-2 text-[14px] outline-none placeholder:text-muted focus:ring-2 focus:ring-ink/20";
 // The homepage's card: a white surface lifted by a soft shadow, and a
 // hairline ring in dark mode instead.
 const card =
@@ -118,6 +149,7 @@ export default function Tracker({
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>({ key: "appliedOn", desc: true });
   const [widths, setWidths] = useState(DEFAULT_WIDTHS);
+  const [open, setOpen] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const table = useRef<HTMLTableElement>(null);
   const drag = useRef<{ widths: Widths; scale: number } | null>(null);
@@ -126,9 +158,10 @@ export default function Tracker({
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(WIDTHS_KEY) ?? "{}");
-      const valid = Object.fromEntries(
+      const valid: Widths = Object.fromEntries(
         Object.entries(saved).filter(
-          ([key, width]) => key in DEFAULT_WIDTHS && typeof width === "number" && width > 0,
+          (entry): entry is [string, number] =>
+            entry[0] in DEFAULT_WIDTHS && typeof entry[1] === "number" && entry[1] > 0,
         ),
       );
       // eslint-disable-next-line react-hooks/set-state-in-effect -- reading browser storage
@@ -150,7 +183,7 @@ export default function Tracker({
   // share units for the table's current size, taken from one column and
   // given to the next: the table's total never changes.
   function startResize() {
-    const sum = COLUMNS.reduce((s, c) => s + widths[c.key], ACTIONS_WIDTH);
+    const sum = COLUMNS.reduce((s, c) => s + widths[c.key], TOGGLE_WIDTH);
     const px = table.current?.getBoundingClientRect().width ?? sum;
     drag.current = { widths, scale: sum / px };
   }
@@ -181,6 +214,13 @@ export default function Tracker({
     storeWidths(DEFAULT_WIDTHS);
   }
 
+  const toggle = (id: number) =>
+    setOpen((ids) => {
+      const next = new Set(ids);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+
   // Presets first, then custom statuses in the order they first appear.
   const statuses = useMemo(() => {
     const all = [...PRESET_STATUSES];
@@ -201,9 +241,16 @@ export default function Tracker({
         (app) =>
           (!filter || app.status === filter) &&
           (!q ||
-            [app.company, app.title, app.email, app.notes].some((text) =>
-              text.toLowerCase().includes(q),
-            )),
+            [
+              app.company,
+              app.title,
+              app.location,
+              app.nextStep,
+              app.contact,
+              app.source,
+              app.email,
+              app.notes,
+            ].some((text) => text.toLowerCase().includes(q))),
       )
       .sort((a, b) => compare(a, b, sort));
   }, [apps, filter, query, sort]);
@@ -221,8 +268,7 @@ export default function Tracker({
       setError(null);
     } catch {
       setApps((list) => list.map((app) => (app.id === id ? before : app)));
-      const name = COLUMNS.find((c) => c.key === field)!.label.toLowerCase();
-      setError(`Couldn't save ${before.company}'s ${name}. Check the value and try again.`);
+      setError(`Couldn't save ${before.company}'s ${LABELS[field]}. Check the value and try again.`);
     }
   }
 
@@ -250,6 +296,8 @@ export default function Tracker({
       });
       setApps((list) => [app, ...list]);
       setHistory((h) => [...h, { applicationId: app.id, status: app.status }]);
+      // Opened, ready for the rest of its details.
+      setOpen((ids) => new Set(ids).add(app.id));
       setError(null);
       form.reset();
       form.querySelector("input")?.focus();
@@ -261,7 +309,7 @@ export default function Tracker({
   const toggleSort = (key: Field) =>
     setSort((s) => ({ key, desc: s.key === key ? !s.desc : startsDescending(key) }));
 
-  const sum = COLUMNS.reduce((s, c) => s + widths[c.key], ACTIONS_WIDTH);
+  const sum = COLUMNS.reduce((s, c) => s + widths[c.key], TOGGLE_WIDTH);
   const share = (width: number) => `${(width / sum) * 100}%`;
 
   const rowProps = (app: Application) => ({
@@ -269,18 +317,20 @@ export default function Tracker({
     statuses,
     save: (field: Field, value: string | boolean) => save(app.id, field, value),
     remove: () => remove(app),
+    open: open.has(app.id),
+    onToggle: () => toggle(app.id),
   });
 
   return (
-    <main className="mx-auto max-w-[1600px] px-4 py-10 sm:px-8">
+    <main className="mx-auto max-w-[1400px] px-4 py-10 sm:px-8">
       <header className="flex flex-wrap items-baseline justify-between gap-4">
         <div>
-          <h1 className="text-[28px] font-medium">Applications</h1>
-          <p className="mt-1 font-mono text-[14px] font-light text-muted">
+          <h1 className="text-[26px] font-medium">Applications</h1>
+          <p className="mt-1 font-mono text-[13px] font-light text-muted">
             {applications(apps.length)}, {apps.filter((a) => a.referral).length} with a referral
           </p>
         </div>
-        <div className="flex gap-1">
+        <div className="-mr-3 flex gap-1">
           <a href="/admin/applications/export" download className={pillButton}>
             Export CSV
           </a>
@@ -294,7 +344,7 @@ export default function Tracker({
 
       <Pipeline apps={apps} history={history} className={`mt-6 ${card}`} />
 
-      <nav aria-label="Filter by status" className="mt-6 flex flex-wrap gap-2">
+      <nav aria-label="Filter by status" className="mt-6 flex flex-wrap gap-1.5">
         <Chip active={!filter} onClick={() => setFilter(null)} count={apps.length}>
           All
         </Chip>
@@ -312,7 +362,7 @@ export default function Tracker({
           ))}
       </nav>
 
-      <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="mt-4 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
         <form onSubmit={add} className="flex flex-col gap-2 sm:flex-row">
           <input
             name="company"
@@ -332,7 +382,7 @@ export default function Tracker({
           />
           <button
             type="submit"
-            className="rounded-full bg-ink px-5 py-2 text-[15px] font-medium text-canvas transition-opacity hover:opacity-80"
+            className="rounded-full bg-ink px-5 py-2 text-[14px] font-medium text-canvas transition-opacity hover:opacity-80"
           >
             Add
           </button>
@@ -344,7 +394,7 @@ export default function Tracker({
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search"
             aria-label="Search applications"
-            className={`${field} min-w-0 flex-1 lg:w-64 lg:flex-none`}
+            className={`${field} min-w-0 flex-1 lg:w-60 lg:flex-none`}
           />
           {/* The cards have no headers to sort from. */}
           <SortMenu sort={sort} onChange={setSort} />
@@ -352,23 +402,30 @@ export default function Tracker({
       </div>
 
       {error && (
-        <p role="alert" className="mt-4 text-[14px] text-gator-orange">
+        <p role="alert" className="mt-4 text-[13px] text-gator-orange">
           {error}
         </p>
       )}
 
+      {/* Suggestions for every Source field. */}
+      <datalist id={SOURCE_LIST}>
+        {SOURCES.map((source) => (
+          <option key={source} value={source} />
+        ))}
+      </datalist>
+
       {/* Wide screens: the table. */}
-      <div className={`mt-6 hidden xl:block ${card}`}>
-        <table ref={table} className="w-full table-fixed border-collapse text-left text-[14px]">
+      <div className={`mt-5 hidden lg:block ${card}`}>
+        <table ref={table} className="w-full table-fixed border-collapse text-left">
           <colgroup>
             {COLUMNS.map(({ key }) => (
               <col key={key} style={{ width: share(widths[key]) }} />
             ))}
-            <col style={{ width: share(ACTIONS_WIDTH) }} />
+            <col style={{ width: share(TOGGLE_WIDTH) }} />
           </colgroup>
           <thead>
-            <tr className="border-b border-pill text-[13px] text-muted">
-              {COLUMNS.map(({ key, label, center }, i) => (
+            <tr className="border-b border-pill text-[12px] text-muted">
+              {COLUMNS.map(({ key, label }, i) => (
                 <th
                   key={key}
                   scope="col"
@@ -377,7 +434,6 @@ export default function Tracker({
                 >
                   <SortButton
                     label={label}
-                    center={center}
                     direction={sort.key === key ? (sort.desc ? "desc" : "asc") : null}
                     onClick={() => toggleSort(key)}
                   />
@@ -394,7 +450,7 @@ export default function Tracker({
                 </th>
               ))}
               <th scope="col">
-                <span className="sr-only">Delete</span>
+                <span className="sr-only">Details</span>
               </th>
             </tr>
           </thead>
@@ -408,9 +464,9 @@ export default function Tracker({
       </div>
 
       {/* Narrower: a card per application, two across on tablets. */}
-      <div className="mt-6 xl:hidden">
+      <div className="mt-5 lg:hidden">
         {shown.length ? (
-          <ul className="grid gap-3 md:grid-cols-2">
+          <ul className="grid items-start gap-3 md:grid-cols-2">
             {shown.map((app) => (
               <Card key={app.id} {...rowProps(app)} />
             ))}
@@ -427,7 +483,7 @@ export default function Tracker({
 
 function Empty({ any }: { any: boolean }) {
   return (
-    <p className="px-4 py-10 text-center font-mono text-[14px] font-light text-muted">
+    <p className="px-4 py-10 text-center font-mono text-[13px] font-light text-muted">
       {any ? "no applications match" : "no applications yet. add one above."}
     </p>
   );
@@ -436,12 +492,10 @@ function Empty({ any }: { any: boolean }) {
 /** A column header: the label, and on its right which way the column sorts. */
 function SortButton({
   label,
-  center,
   direction,
   onClick,
 }: {
   label: string;
-  center?: boolean;
   direction: "asc" | "desc" | null;
   onClick: () => void;
 }) {
@@ -451,14 +505,14 @@ function SortButton({
     <button
       type="button"
       onClick={onClick}
-      className={`group flex w-full items-center gap-1 px-3 py-3 transition-colors hover:text-ink ${
+      className={`group flex w-full items-center justify-between gap-1 px-3 py-2.5 transition-colors hover:text-ink ${
         direction ? "text-ink" : ""
-      } ${center ? "justify-center" : "justify-between"}`}
+      }`}
     >
       <span className="truncate">{label}</span>
       <Icon
         aria-hidden
-        className={`size-4 shrink-0 transition-opacity ${
+        className={`size-3.5 shrink-0 transition-opacity ${
           direction ? "" : "opacity-40 group-hover:opacity-100"
         }`}
       />
@@ -470,7 +524,7 @@ function SortButton({
 function SortMenu({ sort, onChange }: { sort: Sort; onChange: (sort: Sort) => void }) {
   const Icon = sort.desc ? ChevronDownIcon : ChevronUpIcon;
   return (
-    <div className="flex shrink-0 items-center rounded-full bg-surface xl:hidden">
+    <div className="flex shrink-0 items-center rounded-full bg-surface lg:hidden">
       <select
         value={sort.key}
         aria-label="Sort by"
@@ -478,7 +532,7 @@ function SortMenu({ sort, onChange }: { sort: Sort; onChange: (sort: Sort) => vo
           const key = e.target.value as Field;
           onChange({ key, desc: startsDescending(key) });
         }}
-        className="cursor-pointer appearance-none bg-transparent py-2 pl-4 pr-1 text-[15px] outline-none"
+        className="cursor-pointer appearance-none bg-transparent py-2 pr-1 pl-4 text-[14px] outline-none"
       >
         {COLUMNS.map(({ key, label }) => (
           <option key={key} value={key} className="bg-surface text-ink">
@@ -583,12 +637,12 @@ function Chip({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`flex items-baseline gap-1.5 rounded-full px-3.5 py-1.5 text-[14px] transition-colors ${
+      className={`flex items-baseline gap-1.5 rounded-full px-3 py-1 text-[13px] transition-colors ${
         active ? "bg-ink text-canvas" : "bg-surface hover:bg-pill"
       }`}
     >
       {children}
-      <span className={`font-mono text-[12px] font-light ${active ? "opacity-60" : "text-muted"}`}>
+      <span className={`font-mono text-[11px] font-light ${active ? "opacity-60" : "text-muted"}`}>
         {count}
       </span>
     </button>
@@ -600,41 +654,286 @@ type RowProps = {
   statuses: string[];
   save: (field: Field, value: string | boolean) => void;
   remove: () => void;
+  open: boolean;
+  onToggle: () => void;
 };
 
-/** One-line text cell. */
+/** Company, with a tag when it came through a referral, and the title under it. */
+function Who({ app }: { app: Application }) {
+  return (
+    <div className="min-w-0">
+      <div className="flex min-w-0 items-center gap-1.5">
+        <span className="truncate font-medium" title={app.company}>
+          {app.company}
+        </span>
+        {app.referral && (
+          <span className="shrink-0 rounded-full bg-pill px-1.5 text-[11px] leading-[18px] text-muted-strong">
+            Referral
+          </span>
+        )}
+      </div>
+      <p className="truncate text-[12px] text-muted" title={app.title}>
+        {app.title}
+      </p>
+    </div>
+  );
+}
+
+/** A value with a quieter one under it; either can be missing. */
+function Pair({ top, bottom }: { top: string; bottom: string }) {
+  const [first, second] = top ? [top, bottom] : [bottom, ""];
+  return (
+    <div className="min-w-0">
+      <p className="truncate" title={first || undefined}>
+        {first}
+      </p>
+      {second && (
+        <p className="truncate text-[12px] text-muted" title={second}>
+          {second}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** The button that opens and closes an application's details. */
+function Toggle({ app, open, onToggle, controls }: Pick<RowProps, "app" | "open" | "onToggle"> & { controls: string }) {
+  return (
+    <button
+      type="button"
+      aria-expanded={open}
+      aria-controls={controls}
+      aria-label={`Details, ${app.company}`}
+      onClick={onToggle}
+      className="rounded-md p-1 text-muted transition-colors hover:bg-pill hover:text-ink"
+    >
+      <ChevronDownIcon
+        aria-hidden
+        className={`size-4 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+      />
+    </button>
+  );
+}
+
+function Row({ app, statuses, save, remove, open, onToggle }: RowProps) {
+  const id = `row-details-${app.id}`;
+  const cell = "px-3 py-2.5";
+  return (
+    <>
+      <tr
+        onClick={(e) => !onControl(e.target) && onToggle()}
+        className="cursor-pointer border-t border-pill text-[13px] transition-colors first:border-t-0 hover:bg-canvas/60"
+      >
+        <td className={cell}>
+          <Who app={app} />
+        </td>
+        <td className={cell}>
+          <Status app={app} statuses={statuses} save={(v) => save("status", v)} />
+        </td>
+        <td className={cell}>
+          <Pair top={app.workplace} bottom={app.location} />
+        </td>
+        <td className={`${cell} tabular-nums`}>{euros(app.salary)}</td>
+        <td className={`${cell} tabular-nums`}>{formatDate(app.appliedOn)}</td>
+        <td className={cell}>
+          <Pair top={app.nextStep} bottom={formatDate(app.nextStepOn)} />
+        </td>
+        <td className="px-2 py-2.5 text-right">
+          <Toggle app={app} open={open} onToggle={onToggle} controls={id} />
+        </td>
+      </tr>
+      {open && (
+        <tr id={id}>
+          <td colSpan={COLUMNS.length + 1} className="px-3 pt-1 pb-4">
+            <Details app={app} save={save} remove={remove} />
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
+
+/** The same summary as a row, as a card for narrow screens. */
+function Card({ app, statuses, save, remove, open, onToggle }: RowProps) {
+  const id = `card-details-${app.id}`;
+  const where = [app.workplace, app.location].filter(Boolean).join(" in ");
+  const meta = [where, euros(app.salary), app.appliedOn && `applied ${formatDate(app.appliedOn)}`]
+    .filter(Boolean)
+    .join(", ");
+  const next = [app.nextStep, formatDate(app.nextStepOn)].filter(Boolean).join(", ");
+  return (
+    <li className={`min-w-0 text-[13px] ${card}`}>
+      <div onClick={(e) => !onControl(e.target) && onToggle()} className="cursor-pointer p-3">
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <Who app={app} />
+          </div>
+          <Status app={app} statuses={statuses} save={(v) => save("status", v)} />
+          <Toggle app={app} open={open} onToggle={onToggle} controls={id} />
+        </div>
+        {meta && <p className="mt-1.5 text-[12px] text-muted">{meta}</p>}
+        {next && <p className="mt-0.5 text-[12px]">Next: {next}</p>}
+      </div>
+      {open && (
+        <div id={id} className="border-t border-pill p-3">
+          <Details app={app} save={save} remove={remove} />
+        </div>
+      )}
+    </li>
+  );
+}
+
+/** A field in the details, with its name above it. */
+function Labeled({
+  label,
+  className = "",
+  children,
+}: {
+  label: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={`min-w-0 ${className}`}>
+      <p className="mb-1 text-[11px] text-muted-strong">{label}</p>
+      {children}
+    </div>
+  );
+}
+
+/** Everything about an application, each field edited in place. */
+function Details({ app, save, remove }: Pick<RowProps, "app" | "save" | "remove">) {
+  return (
+    <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2 xl:grid-cols-4">
+      <Labeled label="Company">
+        <Text app={app} field="company" label="Company" save={save} />
+      </Labeled>
+      <Labeled label="Title">
+        <Text app={app} field="title" label="Title" save={save} />
+      </Labeled>
+      <Labeled label="Workplace">
+        <Workplace app={app} save={save} />
+      </Labeled>
+      <Labeled label="Location">
+        <Text app={app} field="location" label="Location" placeholder="Madrid" save={save} />
+      </Labeled>
+
+      <Labeled label="Salary">
+        <Salary app={app} save={save} />
+      </Labeled>
+      <Labeled label="Applied">
+        <DateField
+          value={app.appliedOn}
+          onChange={(v) => save("appliedOn", v)}
+          ariaLabel={`Date applied, ${app.company}`}
+        />
+      </Labeled>
+      <Labeled label="Start date">
+        <DateField
+          months
+          value={app.startDate}
+          onChange={(v) => save("startDate", v)}
+          ariaLabel={`Start date, ${app.company}`}
+        />
+      </Labeled>
+      <Labeled label="Source">
+        <Text
+          app={app}
+          field="source"
+          label="Source"
+          placeholder="LinkedIn"
+          list={SOURCE_LIST}
+          save={save}
+        />
+      </Labeled>
+
+      <Labeled label="Next step" className="sm:col-span-2">
+        <Text
+          app={app}
+          field="nextStep"
+          label="Next step"
+          placeholder="Technical interview"
+          save={save}
+        />
+      </Labeled>
+      <Labeled label="Next step date">
+        <DateField
+          value={app.nextStepOn}
+          onChange={(v) => save("nextStepOn", v)}
+          ariaLabel={`Next step date, ${app.company}`}
+        />
+      </Labeled>
+      <Labeled label="Referral">
+        <label className="flex h-[30px] cursor-pointer items-center gap-2 text-[13px]">
+          <input
+            type="checkbox"
+            checked={app.referral}
+            onChange={(e) => save("referral", e.target.checked)}
+            className="size-4 cursor-pointer accent-ink"
+          />
+          Came through a referral
+        </label>
+      </Labeled>
+
+      <Labeled label="Contact" className="sm:col-span-2">
+        <Text app={app} field="contact" label="Contact" placeholder="Name, email" save={save} />
+      </Labeled>
+      <Labeled label="Email used">
+        <Text app={app} field="email" label="Email used" type="email" save={save} />
+      </Labeled>
+      <Labeled label="Posting">
+        <LinkField app={app} save={save} />
+      </Labeled>
+
+      <Labeled label="Notes" className="sm:col-span-2 xl:col-span-4">
+        <Notes app={app} save={save} />
+      </Labeled>
+
+      <div className="flex justify-end sm:col-span-2 xl:col-span-4">
+        <button
+          type="button"
+          onClick={remove}
+          className="-mr-2 rounded-full px-3 py-1 text-[12px] text-muted transition-colors hover:bg-pill hover:text-ink"
+        >
+          Delete application
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** A one-line text field. */
 function Text({
   app,
   field,
   label,
   type = "text",
   placeholder,
+  list,
   save,
-  className = "",
 }: {
   app: Application;
   field: Field;
   label: string;
   type?: string;
   placeholder?: string;
+  list?: string;
   save: RowProps["save"];
-  className?: string;
 }) {
   const value = app[field] as string;
   return (
     <input
-      // Remounts after a save is rolled back, so the input shows the old value.
+      // Remounts after a save is rolled back, so the field shows the old value.
       key={value}
       type={type}
+      list={list}
       defaultValue={value}
-      // The whole value on hover, for when the column is too narrow.
-      title={value || undefined}
       maxLength={MAX_LENGTH[field]}
       placeholder={placeholder}
       aria-label={`${label}, ${app.company}`}
       onBlur={(e) => save(field, e.target.value.trim())}
       onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-      className={`${cellInput} placeholder:text-muted/60 ${className}`}
+      className={input}
     />
   );
 }
@@ -642,7 +941,7 @@ function Text({
 /** The posting's link, with a button to open it. */
 function LinkField({ app, save }: Pick<RowProps, "app" | "save">) {
   return (
-    <div className="flex min-w-0 items-center">
+    <div className="flex min-w-0 items-center gap-1">
       <Text app={app} field="link" label="Link" type="url" placeholder="https://" save={save} />
       {app.link && (
         <a
@@ -672,13 +971,12 @@ function Notes({ app, save }: Pick<RowProps, "app" | "save">) {
       key={app.notes}
       ref={fit}
       defaultValue={app.notes}
-      rows={1}
+      rows={3}
       maxLength={MAX_LENGTH.notes}
-      placeholder="notes"
       aria-label={`Notes, ${app.company}`}
       onInput={(e) => fit(e.currentTarget)}
       onBlur={(e) => save("notes", e.target.value)}
-      className={`${cellInput} block field-sizing-content resize-none overflow-hidden whitespace-pre-wrap placeholder:text-muted/60`}
+      className={`${input} block min-h-[4.5rem] field-sizing-content resize-none overflow-hidden whitespace-pre-wrap`}
     />
   );
 }
@@ -691,10 +989,10 @@ function Workplace({ app, save }: Pick<RowProps, "app" | "save">) {
         value={app.workplace}
         aria-label={`Workplace, ${app.company}`}
         onChange={(e) => save("workplace", e.target.value)}
-        className={`${cellInput} cursor-pointer appearance-none pr-6 ${app.workplace ? "" : "text-muted/60"}`}
+        className={`${input} cursor-pointer appearance-none pr-7 ${app.workplace ? "" : "text-muted/70"}`}
       >
         <option value="" className="bg-surface text-muted">
-          workplace
+          Not set
         </option>
         {WORKPLACES.map((place) => (
           <option key={place} className="bg-surface text-ink">
@@ -704,14 +1002,11 @@ function Workplace({ app, save }: Pick<RowProps, "app" | "save">) {
       </select>
       <ChevronDownIcon
         aria-hidden
-        className="pointer-events-none absolute top-1/2 right-1.5 size-3.5 -translate-y-1/2 text-muted"
+        className="pointer-events-none absolute top-1/2 right-2 size-3.5 -translate-y-1/2 text-muted"
       />
     </div>
   );
 }
-
-/** Digits as euros with thousands commas: "55000" reads €55,000. */
-const euros = (digits: string) => (digits ? `€${Number(digits).toLocaleString("en-US")}` : "");
 
 /**
  * Yearly salary. It's formatted as it's typed, keeping the cursor after
@@ -742,174 +1037,15 @@ function Salary({ app, save }: Pick<RowProps, "app" | "save">) {
         save("salary", digits && String(Number(digits)));
       }}
       onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-      className={`${cellInput} tabular-nums placeholder:text-muted/60`}
+      className={`${input} tabular-nums`}
     />
   );
 }
 
-/** When the job would start: a day, or just a month when that's all that's known. */
-function StartDate({ app, save }: Pick<RowProps, "app" | "save">) {
-  return (
-    <DateField
-      months
-      value={app.startDate}
-      onChange={(v) => save("startDate", v)}
-      ariaLabel={`Start date, ${app.company}`}
-    />
-  );
-}
-
-function Delete({ app, remove }: Pick<RowProps, "app" | "remove">) {
-  return (
-    <button
-      type="button"
-      onClick={remove}
-      aria-label={`Delete ${app.company}`}
-      className="rounded-md p-1.5 text-muted transition-colors hover:bg-pill hover:text-ink"
-    >
-      <XMarkIcon className="size-4" aria-hidden />
-    </button>
-  );
-}
-
-function Row({ app, statuses, save, remove }: RowProps) {
-  return (
-    <tr className="border-b border-pill align-top last:border-0">
-      <td className="px-1 py-1 font-medium">
-        <Text app={app} field="company" label="Company" save={save} />
-      </td>
-      <td className="px-1 py-1">
-        <Text app={app} field="title" label="Title" save={save} />
-      </td>
-      <td className="px-1 py-1 text-center">
-        <Check checked={app.referral} label={`Referral, ${app.company}`} onChange={(v) => save("referral", v)} />
-      </td>
-      <td className="px-1 py-1">
-        <Status app={app} statuses={statuses} save={(v) => save("status", v)} />
-      </td>
-      <td className="px-1 py-1">
-        <Workplace app={app} save={save} />
-      </td>
-      <td className="px-1 py-1">
-        <Salary app={app} save={save} />
-      </td>
-      <td className="px-1 py-1">
-        <Text app={app} field="email" label="Email used" type="email" placeholder="email" save={save} />
-      </td>
-      <td className="px-1 py-1">
-        <DateField
-          value={app.appliedOn}
-          onChange={(v) => save("appliedOn", v)}
-          ariaLabel={`Date applied, ${app.company}`}
-        />
-      </td>
-      <td className="px-1 py-1">
-        <StartDate app={app} save={save} />
-      </td>
-      <td className="px-1 py-1">
-        <LinkField app={app} save={save} />
-      </td>
-      <td className="px-1 py-1">
-        <Notes app={app} save={save} />
-      </td>
-      <td className="px-1 py-1 text-center">
-        <Delete app={app} remove={remove} />
-      </td>
-    </tr>
-  );
-}
-
-/** The same fields as a row, as a card for narrow screens. */
-function Card({ app, statuses, save, remove }: RowProps) {
-  const label = "w-20 shrink-0 px-2 text-[13px] text-muted";
-  return (
-    <li className={`min-w-0 p-2 text-[14px] ${card}`}>
-      <div className="flex items-start gap-1">
-        <div className="min-w-0 flex-1">
-          <Text app={app} field="company" label="Company" save={save} className="text-[16px] font-medium" />
-          <Text app={app} field="title" label="Title" save={save} className="text-muted" />
-        </div>
-        <Delete app={app} remove={remove} />
-      </div>
-      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 px-2">
-        <Status app={app} statuses={statuses} save={(v) => save("status", v)} />
-        <div className="w-36">
-          <DateField
-            value={app.appliedOn}
-            onChange={(v) => save("appliedOn", v)}
-            ariaLabel={`Date applied, ${app.company}`}
-          />
-        </div>
-      </div>
-      <dl className="mt-2 border-t border-pill pt-2">
-        <div className="flex items-center">
-          <dt className={label}>Workplace</dt>
-          <dd className="min-w-0 flex-1">
-            <Workplace app={app} save={save} />
-          </dd>
-        </div>
-        <div className="flex items-center">
-          <dt className={label}>Salary</dt>
-          <dd className="min-w-0 flex-1">
-            <Salary app={app} save={save} />
-          </dd>
-        </div>
-        <div className="flex items-center">
-          <dt className={label}>Email</dt>
-          <dd className="min-w-0 flex-1">
-            <Text app={app} field="email" label="Email used" type="email" placeholder="email" save={save} />
-          </dd>
-        </div>
-        <div className="flex items-center">
-          <dt className={label}>Start</dt>
-          <dd className="min-w-0 flex-1">
-            <StartDate app={app} save={save} />
-          </dd>
-        </div>
-        <div className="flex items-center">
-          <dt className={label}>Link</dt>
-          <dd className="min-w-0 flex-1">
-            <LinkField app={app} save={save} />
-          </dd>
-        </div>
-        <div className="flex items-start">
-          <dt className={`${label} pt-1.5`}>Notes</dt>
-          <dd className="min-w-0 flex-1">
-            <Notes app={app} save={save} />
-          </dd>
-        </div>
-      </dl>
-      <div className="mt-1 flex gap-5 px-2 pb-1 text-[13px]">
-        <label className="flex cursor-pointer items-center gap-2">
-          <Check checked={app.referral} label={`Referral, ${app.company}`} onChange={(v) => save("referral", v)} />
-          Referral
-        </label>
-      </div>
-    </li>
-  );
-}
-
-function Check({
-  checked,
-  label,
-  onChange,
-}: {
-  checked: boolean;
-  label: string;
-  onChange: (checked: boolean) => void;
-}) {
-  return (
-    <input
-      type="checkbox"
-      checked={checked}
-      aria-label={label}
-      onChange={(e) => onChange(e.target.checked)}
-      className="my-2 size-4 cursor-pointer accent-ink"
-    />
-  );
-}
-
-/** A colored pill menu of known statuses; "Custom…" switches to a text field. */
+/**
+ * The status as a colored pill, sized to its text, that opens a menu of
+ * known statuses; "Custom…" switches it to a text field.
+ */
 function Status({
   app,
   statuses,
@@ -938,34 +1074,27 @@ function Status({
           if (e.key === "Enter") e.currentTarget.blur();
           if (e.key === "Escape") setCustom(false);
         }}
-        className={`${cellInput} bg-pill`}
+        className="w-32 rounded-full bg-pill px-2.5 py-0.5 text-[12px] outline-none"
       />
     );
   }
 
   return (
-    <div className="py-1">
-      <div
-        className={`relative inline-flex max-w-full items-center rounded-full transition-[filter] hover:brightness-95 dark:hover:brightness-125 ${pillClass(app.status)}`}
-      >
-        <select
-          value={app.status}
-          title={app.status}
-          aria-label={`Status, ${app.company}`}
-          onChange={(e) => (e.target.value === CUSTOM ? setCustom(true) : save(e.target.value))}
-          className="min-w-0 cursor-pointer appearance-none truncate rounded-full bg-transparent py-1 pl-3 pr-7 text-[13px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-current"
-        >
-          {statuses.map((status) => (
-            <option key={status} className="bg-surface text-ink">
-              {status}
-            </option>
-          ))}
-          <option value={CUSTOM} className="bg-surface text-ink">
-            Custom…
-          </option>
-        </select>
-        <ChevronDownIcon aria-hidden className="pointer-events-none absolute right-2 size-3.5 opacity-70" />
-      </div>
-    </div>
+    <select
+      value={app.status}
+      title={app.status}
+      aria-label={`Status, ${app.company}`}
+      onChange={(e) => (e.target.value === CUSTOM ? setCustom(true) : save(e.target.value))}
+      className={`max-w-full cursor-pointer appearance-none truncate rounded-full px-2.5 py-0.5 text-[12px] font-medium outline-none field-sizing-content transition-[filter] hover:brightness-95 focus-visible:ring-2 focus-visible:ring-current dark:hover:brightness-125 ${pillClass(app.status)}`}
+    >
+      {statuses.map((status) => (
+        <option key={status} className="bg-surface font-normal text-ink">
+          {status}
+        </option>
+      ))}
+      <option value={CUSTOM} className="bg-surface font-normal text-ink">
+        Custom…
+      </option>
+    </select>
   );
 }

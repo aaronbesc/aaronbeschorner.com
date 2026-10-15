@@ -5,7 +5,7 @@ import { CalendarDaysIcon } from "@heroicons/react/16/solid";
 import { useEffect, useId, useRef, useState } from "react";
 import { DayPicker } from "react-day-picker";
 
-// A date cell for the tracker (components/Tracker.tsx): the date as text,
+// A date field for the tracker (components/Tracker.tsx): the date as text,
 // and a calendar that opens below it (above, near the bottom of the
 // screen). The calendar is a popover, so it sits in the top layer: it isn't
 // clipped by the scrolling table, and a click outside or Escape closes it.
@@ -34,6 +34,12 @@ const label = (date: Date, month: boolean) => {
     day: month ? undefined : "numeric",
     year: thisYear && !month ? undefined : "numeric",
   });
+};
+
+/** How a stored date reads: "Oct 12", or "Jan 2027" for a whole month. */
+export const formatDate = (value: string) => {
+  const date = parse(value);
+  return date ? label(date, isMonth(value)) : "";
 };
 
 const HEIGHT = 380; // roughly the open calendar, to decide above or below
@@ -103,11 +109,12 @@ export default function DateField({
         aria-expanded={open}
         aria-controls={id}
         onClick={() => (open ? close() : show())}
-        className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-pill ${
-          open ? "bg-pill" : ""
+        // Looks like the tracker's other form fields (components/Tracker.tsx).
+        className={`flex w-full items-center gap-2 rounded-lg bg-canvas px-2.5 py-1.5 text-left text-[13px] ring-ink/15 transition-shadow hover:ring-1 ${
+          open ? "ring-1" : ""
         }`}
       >
-        <CalendarDaysIcon className="size-4 shrink-0 text-muted" aria-hidden />
+        <CalendarDaysIcon className="size-3.5 shrink-0 text-muted" aria-hidden />
         <span className={`truncate ${date ? "" : "text-muted/60"}`}>
           {date ? label(date, monthOnly) : "set date"}
         </span>

@@ -33,6 +33,11 @@ export async function addApplication(input: { company: unknown; title: unknown }
     link: "",
     notes: "",
     startDate: "",
+    location: "",
+    nextStep: "",
+    nextStepOn: "",
+    source: "",
+    contact: "",
   };
   const given = { company: input.company, title: input.title };
   for (const field of FIELDS) {
