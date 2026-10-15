@@ -5,7 +5,7 @@ import { Cascadia_Code, Inter } from "next/font/google";
 import { notFound } from "next/navigation";
 import { LocaleProvider } from "@/components/Locale";
 import { DICTIONARIES, HOME, LOCALES, hasLocale } from "@/lib/i18n";
-import { PROFILE } from "@/lib/profile";
+import { PROFILE, SHARE_IMAGE } from "@/lib/profile";
 import { THEME_SCRIPT } from "@/lib/theme";
 
 const inter = Inter({
@@ -26,8 +26,8 @@ type Params = { params: Promise<{ lang: string }> };
 export const generateStaticParams = () => LOCALES.map((lang) => ({ lang }));
 export const dynamicParams = false;
 
-// The share image itself comes from app/opengraph-image.tsx. Its URL and
-// the language alternates are resolved against the production domain.
+// The share image is drawn by app/opengraph-image.tsx. Its URL and the
+// language alternates are resolved against the production domain.
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { lang } = await params;
   if (!hasLocale(lang)) return {};
@@ -49,8 +49,9 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
       alternateLocale: LOCALES.filter((l) => l !== lang).map(
         (l) => DICTIONARIES[l].ogLocale,
       ),
+      images: [SHARE_IMAGE.image],
     },
-    twitter: { card: "summary_large_image" },
+    twitter: { card: "summary_large_image", images: [SHARE_IMAGE.image] },
   };
 }
 

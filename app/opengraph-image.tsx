@@ -1,17 +1,17 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
-import { PROFILE } from "@/lib/profile";
+import { PROFILE, SHARE_IMAGE } from "@/lib/profile";
 
 // The preview shown when the site is shared (LinkedIn, WhatsApp, iMessage,
 // X…). Rendered once at build time: the homepage's white card as a poster,
 // in the light palette, large enough to read as a thumbnail.
 
-const TAGLINE = "data + ai + design";
+const TAGLINE = SHARE_IMAGE.tagline;
 
-export const alt = `${PROFILE.name} — ${TAGLINE}`;
-export const size = { width: 1200, height: 630 };
-export const contentType = "image/png";
+export const alt = SHARE_IMAGE.image.alt;
+export const size = { width: SHARE_IMAGE.image.width, height: SHARE_IMAGE.image.height };
+export const contentType = SHARE_IMAGE.image.type;
 
 // Light palette, from globals.css.
 const COLOR = {

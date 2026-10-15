@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import Island from "@/components/Island";
 import { EDITORIALS, pagesOf, type Editorial, type Shot } from "@/lib/editorials";
 import { DICTIONARIES, hasLocale, pageHref, type Locale } from "@/lib/i18n";
-import { PROFILE } from "@/lib/profile";
+import { PROFILE, SHARE_IMAGE } from "@/lib/profile";
 
 // The magazine titles are set in Helvetica Neue Bold, which Apple devices
 // have; elsewhere Arimo, its free near-twin, stands in (see font-magazine).
@@ -34,7 +34,23 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
         "x-default": pageHref("en", "/styling"),
       },
     },
-    openGraph: { title, description: t.styling.description, locale: t.ogLocale },
+    // A page's openGraph replaces the layout's whole, so it names the image
+    // again; the rest of the layout's preview fields come back with it.
+    openGraph: {
+      title,
+      description: t.styling.description,
+      siteName: PROFILE.name,
+      type: "website",
+      locale: t.ogLocale,
+      url: pageHref(lang, "/styling"),
+      images: [SHARE_IMAGE.image],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description: t.styling.description,
+      images: [SHARE_IMAGE.image],
+    },
   };
 }
 

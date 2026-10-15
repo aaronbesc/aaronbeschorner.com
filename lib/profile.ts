@@ -9,3 +9,18 @@ export const PROFILE = {
   x: "aaronbeschorner",
   source: "https://github.com/aaronbesc/my_portfolio",
 };
+
+// The preview shown when a page is shared, drawn by app/opengraph-image.tsx.
+// The root layout is per language (app/[lang]), so pages don't pick that
+// file up on their own: their metadata links it with this.
+const TAGLINE = "data + ai + design";
+export const SHARE_IMAGE = {
+  tagline: TAGLINE,
+  image: {
+    url: "/opengraph-image",
+    width: 1200,
+    height: 630,
+    type: "image/png",
+    alt: `${PROFILE.name} — ${TAGLINE}`,
+  },
+};
