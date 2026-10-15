@@ -3,7 +3,7 @@
 import { sankey, sankeyJustify, type SankeyLink, type SankeyNode } from "d3-sankey";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Application, StatusChange } from "@/lib/applications";
-import { APPLIED, COLD, REFERRAL, pipeline, type Flow } from "@/lib/pipeline";
+import { COLD, REFERRAL, pipeline, type Flow } from "@/lib/pipeline";
 import { statusColor } from "@/lib/status";
 
 // The tracker's pipeline: a Sankey diagram of how applications moved from
@@ -13,13 +13,13 @@ import { statusColor } from "@/lib/status";
 // Hover or tap a flow or a status for its numbers. The same flows are also
 // there as a table.
 
-type Node = { id: string };
+type Node = { id: string; fixedValue: number };
 type Laid = SankeyNode<Node, Flow>;
 type Link = SankeyLink<Node, Flow>;
 type Hover = { kind: "node"; id: string } | { kind: "link"; index: number } | null;
 
 const NODE_WIDTH = 4;
-const START = new Set([APPLIED, REFERRAL, COLD]);
+const START = new Set([REFERRAL, COLD]);
 
 const colorOf = (id: string) =>
   id === COLD ? "var(--status-gray)" : START.has(id) ? "var(--color-ink)" : statusColor(id);
@@ -34,7 +34,14 @@ function band(link: Link) {
   return `M${x0},${link.y0}C${mid},${link.y0} ${mid},${link.y1} ${x1},${link.y1}`;
 }
 
-function lay(flows: Flow[], width: number, height: number, labelRoom: number, padding: number) {
+function lay(
+  flows: Flow[],
+  reached: Map<string, number>,
+  width: number,
+  height: number,
+  labelRoom: number,
+  padding: number,
+) {
   const ids = [...new Set(flows.flatMap((f) => [f.source, f.target]))];
   return sankey<Node, Flow>()
     .nodeId((n) => n.id)
@@ -46,7 +53,9 @@ function lay(flows: Flow[], width: number, height: number, labelRoom: number, pa
       [0, 4],
       [width - labelRoom, height - 4],
     ])({
-    nodes: ids.map((id) => ({ id })),
+    // Sized by every application that reached the status, so the ones
+    // still there count too, not just those that moved on.
+    nodes: ids.map((id) => ({ id, fixedValue: reached.get(id) ?? 0 })),
     links: flows.map((f) => ({ ...f })),
   });
 }
@@ -68,7 +77,10 @@ export default function Pipeline({
   const [table, setTable] = useState(false);
   const [hover, setHover] = useState<Hover>(null);
 
-  const flows = useMemo(() => pipeline(apps, history, byReferral), [apps, history, byReferral]);
+  const { flows, reached } = useMemo(
+    () => pipeline(apps, history, byReferral),
+    [apps, history, byReferral],
+  );
   const drawn = !table && flows.length > 0;
 
   // Drawn at the box's width, so it fits any screen.
@@ -88,16 +100,16 @@ export default function Pipeline({
     // A first pass finds the busiest column (nodes in a column share an x);
     // the height gives each of its statuses room for a label.
     const columns = new Map<number, number>();
-    for (const node of lay(flows, width, 400, labelRoom, padding).nodes) {
+    for (const node of lay(flows, reached, width, 400, labelRoom, padding).nodes) {
       columns.set(node.x0 ?? 0, (columns.get(node.x0 ?? 0) ?? 0) + 1);
     }
     const busiest = Math.max(...columns.values());
     const height = Math.min(640, Math.max(220, busiest * (narrow ? 66 : 52)));
-    const graph = lay(flows, width, height, labelRoom, padding);
+    const graph = lay(flows, reached, width, height, labelRoom, padding);
     const lastX = Math.max(...columns.keys());
     const step = columns.size > 1 ? lastX / (columns.size - 1) : width;
     return { ...graph, height, narrow, step, labelRoom, lastX };
-  }, [flows, width]);
+  }, [flows, reached, width]);
 
   const total = apps.length;
   const touches = (link: Link, id: string) =>
@@ -105,33 +117,42 @@ export default function Pipeline({
   const lit = (link: Link, index: number) =>
     hover?.kind === "link" ? hover.index === index : hover ? touches(link, hover.id) : false;
 
-  let tip: { x: number; y: number; below: boolean; title: string; detail: string } | null = null;
+  // Where the tooltip goes: a point, and which side of it the card sits.
+  let tip: {
+    x: number;
+    y: number;
+    side: "left" | "right" | "center";
+    title: string;
+    detail: string;
+  } | null = null;
   if (layout && hover?.kind === "node") {
     const node = layout.nodes.find((n) => n.id === hover.id);
     if (node) {
       const reached = node.value ?? 0;
       const out = (node.sourceLinks ?? []).reduce((sum, l) => sum + l.value, 0);
       const still = reached - out;
-      const y = node.y0 ?? 0;
+      // Beside the bar, at its middle (kept clear of the chart's edges), on
+      // the side away from its label.
+      const left = (node.x0 ?? 0) > width / 2;
       tip = {
-        x: (node.x0 ?? 0) + NODE_WIDTH / 2,
-        y: y < 70 ? (node.y1 ?? 0) + 10 : y - 10,
-        below: y < 70,
+        x: left ? (node.x0 ?? 0) - 10 : (node.x1 ?? 0) + 10,
+        y: Math.min(Math.max(((node.y0 ?? 0) + (node.y1 ?? 0)) / 2, 32), layout.height - 32),
+        side: left ? "left" : "right",
         title: node.id,
-        detail: START.has(node.id)
-          ? count(reached)
-          : `${reached} of ${count(total)}${out && still ? `, ${still} still here` : ""}`,
+        detail: `${START.has(node.id) || reached === total ? count(reached) : `${reached} of ${count(total)}`}${
+          out && still ? `, ${still} still here` : ""
+        }`,
       };
     }
   } else if (layout && hover?.kind === "link") {
     const link = layout.links[hover.index];
     const source = link.source as Laid;
     const target = link.target as Laid;
-    const top = Math.min(link.y0 ?? 0, link.y1 ?? 0) - (link.width ?? 0) / 2;
+    // On the flow itself, halfway along it.
     tip = {
-      x: ((source.x1 ?? 0) + (target.x0 ?? 0)) / 2,
-      y: top < 70 ? Math.max(link.y0 ?? 0, link.y1 ?? 0) + (link.width ?? 0) / 2 + 10 : top - 10,
-      below: top < 70,
+      x: Math.min(Math.max(((source.x1 ?? 0) + (target.x0 ?? 0)) / 2, 110), width - 110),
+      y: Math.min(Math.max(((link.y0 ?? 0) + (link.y1 ?? 0)) / 2, 32), layout.height - 32),
+      side: "center",
       title: `${source.id} to ${target.id}`,
       detail: `${link.value} of ${count(source.value ?? 0)}`,
     };
@@ -169,7 +190,9 @@ export default function Pipeline({
 
       {!flows.length ? (
         <p className="py-10 text-center font-mono text-[14px] font-light text-muted">
-          no applications yet
+          {total
+            ? `${count(total)} in resume screening, none moved on yet`
+            : "no applications yet"}
         </p>
       ) : table ? (
         <FlowTable flows={flows} />
@@ -281,10 +304,10 @@ export default function Pipeline({
 
               {tip && (
                 <div
-                  className={`pointer-events-none absolute z-10 w-max max-w-[220px] -translate-x-1/2 rounded-xl bg-surface px-3 py-2 text-[13px] leading-snug shadow-[0_16px_40px_-12px_rgb(0_0_0/0.25)] ring-1 ring-ink/[0.06] ${
-                    tip.below ? "" : "-translate-y-full"
+                  className={`pointer-events-none absolute z-10 w-max max-w-[220px] -translate-y-1/2 rounded-xl bg-surface px-3 py-2 text-[13px] leading-snug shadow-[0_16px_40px_-12px_rgb(0_0_0/0.25)] ring-1 ring-ink/[0.06] ${
+                    tip.side === "center" ? "-translate-x-1/2" : tip.side === "left" ? "-translate-x-full" : ""
                   }`}
-                  style={{ left: Math.min(Math.max(tip.x, 110), width - 110), top: tip.y }}
+                  style={{ left: tip.x, top: tip.y }}
                 >
                   <p className="font-medium">{tip.title}</p>
                   <p className="font-mono text-[11px] font-light text-muted">{tip.detail}</p>
