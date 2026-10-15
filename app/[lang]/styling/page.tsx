@@ -22,7 +22,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { lang } = await params;
   if (!hasLocale(lang)) return {};
   const t = DICTIONARIES[lang];
-  const title = `${t.styling.title} · ${PROFILE.name}`;
+  // The page's address, like the homepage's title.
+  const title = `${new URL(PROFILE.site).host}${pageHref(lang, "/styling")}`;
   return {
     title,
     description: t.styling.description,
@@ -35,11 +36,10 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
       },
     },
     // A page's openGraph replaces the layout's whole, so it names the image
-    // again; the rest of the layout's preview fields come back with it.
+    // and the layout's other preview fields again.
     openGraph: {
       title,
       description: t.styling.description,
-      siteName: PROFILE.name,
       type: "website",
       locale: t.ogLocale,
       url: pageHref(lang, "/styling"),

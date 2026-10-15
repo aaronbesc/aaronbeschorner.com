@@ -113,7 +113,6 @@ const en = {
   source: "see source code",
 
   styling: {
-    title: "Styling",
     description:
       "Editorials Aaron Beschorner worked on as a stylist for Strike Magazine: VISAGE, MOD, POSSE and SPORT.",
     kicker: "styling · Strike Magazine",
@@ -199,7 +198,6 @@ const es: Dictionary = {
   source: "ver código fuente",
 
   styling: {
-    title: "Estilismo",
     description:
       "Editoriales en las que Aaron Beschorner trabajó como estilista para Strike Magazine: VISAGE, MOD, POSSE y SPORT.",
     kicker: "estilismo · Strike Magazine",

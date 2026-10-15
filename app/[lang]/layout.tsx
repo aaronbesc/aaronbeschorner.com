@@ -32,18 +32,20 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { lang } = await params;
   if (!hasLocale(lang)) return {};
   const t = DICTIONARIES[lang];
+  // The share image already carries the name and tagline, so the title is
+  // just the address.
+  const title = new URL(PROFILE.site).host;
   return {
     metadataBase: new URL(PROFILE.site),
-    title: PROFILE.name,
+    title,
     description: t.description,
     alternates: {
       canonical: HOME[lang],
       languages: { en: HOME.en, es: HOME.es, "x-default": HOME.en },
     },
     openGraph: {
-      title: PROFILE.name,
+      title,
       description: t.description,
-      siteName: PROFILE.name,
       type: "website",
       locale: t.ogLocale,
       alternateLocale: LOCALES.filter((l) => l !== lang).map(
