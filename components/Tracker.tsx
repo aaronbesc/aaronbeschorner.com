@@ -28,6 +28,7 @@ import Pipeline from "@/components/Pipeline";
 import {
   MAX_LENGTH,
   PRESET_STATUSES,
+  WORKPLACES,
   type Application,
   type Field,
   type StatusChange,
@@ -45,15 +46,17 @@ import { pillClass } from "@/lib/status";
 // header. Narrower than that, each application becomes a card.
 
 const COLUMNS: { key: Field; label: string; width: number; center?: boolean }[] = [
-  { key: "company", label: "Company", width: 150 },
-  { key: "title", label: "Title", width: 185 },
-  { key: "referral", label: "Referral", width: 110, center: true },
-  { key: "status", label: "Status", width: 175 },
-  { key: "email", label: "Email used", width: 180 },
-  { key: "appliedOn", label: "Applied", width: 120 },
-  { key: "startDate", label: "Start", width: 135 },
-  { key: "link", label: "Link", width: 140 },
-  { key: "notes", label: "Notes", width: 165 },
+  { key: "company", label: "Company", width: 145 },
+  { key: "title", label: "Title", width: 175 },
+  { key: "referral", label: "Referral", width: 105, center: true },
+  { key: "status", label: "Status", width: 170 },
+  { key: "workplace", label: "Workplace", width: 125 },
+  { key: "salary", label: "Salary", width: 110 },
+  { key: "email", label: "Email used", width: 165 },
+  { key: "appliedOn", label: "Applied", width: 115 },
+  { key: "startDate", label: "Start", width: 125 },
+  { key: "link", label: "Link", width: 120 },
+  { key: "notes", label: "Notes", width: 150 },
 ];
 
 /** Each column's share of the table, in pixels at the default size. */
@@ -66,10 +69,12 @@ const WIDTHS_KEY = "tracker-widths"; // remembered in this browser
 type Sort = { key: Field; desc: boolean };
 
 /**
- * Applied starts newest first and Referral yes first; everything else
- * ascending, so text goes A to Z and start dates soonest first.
+ * Applied starts newest first, Referral yes first and Salary highest first;
+ * everything else ascending, so text goes A to Z and start dates soonest
+ * first. (Salaries are digits, so the numeric compare below orders them.)
  */
-const startsDescending = (key: Field) => key === "appliedOn" || key === "referral";
+const startsDescending = (key: Field) =>
+  key === "appliedOn" || key === "referral" || key === "salary";
 
 function compare(a: Application, b: Application, { key, desc }: Sort) {
   const x = a[key];
@@ -678,6 +683,70 @@ function Notes({ app, save }: Pick<RowProps, "app" | "save">) {
   );
 }
 
+/** Remote, Hybrid or In-person. */
+function Workplace({ app, save }: Pick<RowProps, "app" | "save">) {
+  return (
+    <div className="relative">
+      <select
+        value={app.workplace}
+        aria-label={`Workplace, ${app.company}`}
+        onChange={(e) => save("workplace", e.target.value)}
+        className={`${cellInput} cursor-pointer appearance-none pr-6 ${app.workplace ? "" : "text-muted/60"}`}
+      >
+        <option value="" className="bg-surface text-muted">
+          workplace
+        </option>
+        {WORKPLACES.map((place) => (
+          <option key={place} className="bg-surface text-ink">
+            {place}
+          </option>
+        ))}
+      </select>
+      <ChevronDownIcon
+        aria-hidden
+        className="pointer-events-none absolute top-1/2 right-1.5 size-3.5 -translate-y-1/2 text-muted"
+      />
+    </div>
+  );
+}
+
+/** Digits as euros with thousands commas: "55000" reads €55,000. */
+const euros = (digits: string) => (digits ? `€${Number(digits).toLocaleString("en-US")}` : "");
+
+/**
+ * Yearly salary. It's formatted as it's typed, keeping the cursor after
+ * the same digit it was after, and saved as plain digits.
+ */
+function Salary({ app, save }: Pick<RowProps, "app" | "save">) {
+  return (
+    <input
+      key={app.salary}
+      inputMode="numeric"
+      defaultValue={euros(app.salary)}
+      placeholder="€"
+      aria-label={`Salary, ${app.company}`}
+      onInput={(e) => {
+        const el = e.currentTarget;
+        const caret = el.selectionStart ?? el.value.length;
+        const before = el.value.slice(0, caret).replace(/\D/g, "").length;
+        const digits = el.value.replace(/\D/g, "").slice(0, 9);
+        el.value = euros(digits);
+        let at = el.value ? 1 : 0; // just after the € sign
+        for (let seen = 0; at < el.value.length && seen < before; at++) {
+          if (/\d/.test(el.value[at])) seen++;
+        }
+        el.setSelectionRange(at, at);
+      }}
+      onBlur={(e) => {
+        const digits = e.target.value.replace(/\D/g, "");
+        save("salary", digits && String(Number(digits)));
+      }}
+      onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+      className={`${cellInput} tabular-nums placeholder:text-muted/60`}
+    />
+  );
+}
+
 /** When the job would start: a day, or just a month when that's all that's known. */
 function StartDate({ app, save }: Pick<RowProps, "app" | "save">) {
   return (
@@ -717,6 +786,12 @@ function Row({ app, statuses, save, remove }: RowProps) {
       </td>
       <td className="px-1 py-1">
         <Status app={app} statuses={statuses} save={(v) => save("status", v)} />
+      </td>
+      <td className="px-1 py-1">
+        <Workplace app={app} save={save} />
+      </td>
+      <td className="px-1 py-1">
+        <Salary app={app} save={save} />
       </td>
       <td className="px-1 py-1">
         <Text app={app} field="email" label="Email used" type="email" placeholder="email" save={save} />
@@ -767,6 +842,18 @@ function Card({ app, statuses, save, remove }: RowProps) {
         </div>
       </div>
       <dl className="mt-2 border-t border-pill pt-2">
+        <div className="flex items-center">
+          <dt className={label}>Workplace</dt>
+          <dd className="min-w-0 flex-1">
+            <Workplace app={app} save={save} />
+          </dd>
+        </div>
+        <div className="flex items-center">
+          <dt className={label}>Salary</dt>
+          <dd className="min-w-0 flex-1">
+            <Salary app={app} save={save} />
+          </dd>
+        </div>
         <div className="flex items-center">
           <dt className={label}>Email</dt>
           <dd className="min-w-0 flex-1">

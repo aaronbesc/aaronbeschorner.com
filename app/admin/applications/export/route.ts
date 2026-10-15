@@ -11,6 +11,8 @@ const HEADERS = [
   "Title",
   "Referral",
   "Status",
+  "Workplace",
+  "Salary (EUR)",
   "Email used",
   "Date applied",
   "Link",

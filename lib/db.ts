@@ -18,6 +18,8 @@ const COLUMNS: Record<Field, string> = {
   title: "title",
   referral: "referral",
   status: "status",
+  workplace: "workplace",
+  salary: "salary",
   email: "email",
   appliedOn: "applied_on",
   link: "link",
@@ -31,6 +33,8 @@ type Row = {
   title: string;
   referral: boolean;
   status: string;
+  workplace: string;
+  salary: string | null;
   email: string;
   applied_on: string | null;
   link: string;
@@ -44,6 +48,8 @@ const toApplication = (row: Row): Application => ({
   title: row.title,
   referral: row.referral,
   status: row.status,
+  workplace: row.workplace,
+  salary: row.salary ?? "",
   email: row.email,
   appliedOn: row.applied_on ?? "",
   link: row.link,
@@ -52,9 +58,9 @@ const toApplication = (row: Row): Application => ({
 });
 
 // applied_on is read as text so it stays a plain YYYY-MM-DD, with no time
-// zone shifting it a day.
-const SELECT = `id, company, title, referral, status, email,
-  applied_on::text AS applied_on, link, notes, start_date`;
+// zone shifting it a day; salary as text, like the app keeps it.
+const SELECT = `id, company, title, referral, status, workplace,
+  salary::text AS salary, email, applied_on::text AS applied_on, link, notes, start_date`;
 
 export async function listApplications() {
   const rows = await sql().query(
@@ -79,8 +85,9 @@ export async function createApplication(app: Omit<Application, "id">) {
   const rows = await sql().query(
     `WITH created AS (
        INSERT INTO applications
-         (company, title, referral, status, email, applied_on, link, notes, start_date)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         (company, title, referral, status, workplace, salary, email, applied_on, link,
+          notes, start_date)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING ${SELECT}
      ), history AS (
        INSERT INTO status_changes (application_id, status)
@@ -92,6 +99,8 @@ export async function createApplication(app: Omit<Application, "id">) {
       app.title,
       app.referral,
       app.status,
+      app.workplace,
+      app.salary || null,
       app.email,
       app.appliedOn || null,
       app.link,
@@ -103,7 +112,9 @@ export async function createApplication(app: Omit<Application, "id">) {
 }
 
 export async function updateApplication(id: number, field: Field, value: string | boolean) {
-  const stored = (field === "appliedOn" || field === "startDate") && value === "" ? null : value;
+  // Empty dates and salaries are stored as NULL.
+  const nullable = field === "appliedOn" || field === "startDate" || field === "salary";
+  const stored = nullable && value === "" ? null : value;
   if (field === "status") {
     await sql().query(
       `WITH updated AS (

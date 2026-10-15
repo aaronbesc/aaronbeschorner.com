@@ -7,6 +7,10 @@ export type Application = {
   title: string;
   referral: boolean;
   status: string;
+  /** One of WORKPLACES, or "" when not set. */
+  workplace: string;
+  /** Yearly salary in euros, as digits ("55000"), or "" when not set. */
+  salary: string;
   email: string;
   /** YYYY-MM-DD, or "" when not set. */
   appliedOn: string;
@@ -36,6 +40,8 @@ export const PRESET_STATUSES = [
 
 export const DEFAULT_STATUS = PRESET_STATUSES[0];
 
+export const WORKPLACES = ["Remote", "Hybrid", "In-person"];
+
 /** Column limits, so a stray paste can't fill the database. */
 export const MAX_LENGTH: Partial<Record<Field, number>> = {
   company: 200,
@@ -54,6 +60,12 @@ export function cleanField(field: Field, value: unknown) {
   switch (field) {
     case "referral":
       return typeof value === "boolean" ? value : null;
+    case "workplace":
+      return value === "" || WORKPLACES.includes(value as string) ? (value as string) : null;
+    case "salary":
+      // Whole euros, up to 999,999,999; leading zeros dropped.
+      if (value === "") return "";
+      return typeof value === "string" && /^\d{1,9}$/.test(value) ? String(Number(value)) : null;
     case "appliedOn":
     case "startDate": {
       if (value === "") return "";
@@ -86,6 +98,8 @@ export const FIELDS: Field[] = [
   "title",
   "referral",
   "status",
+  "workplace",
+  "salary",
   "email",
   "appliedOn",
   "link",

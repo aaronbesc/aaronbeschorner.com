@@ -17,6 +17,8 @@ await sql`
     title       text    NOT NULL,
     referral    boolean NOT NULL DEFAULT false,
     status      text    NOT NULL DEFAULT 'Resume Screening',
+    workplace   text    NOT NULL DEFAULT '',
+    salary      integer,
     email       text    NOT NULL DEFAULT '',
     applied_on  date,
     link        text    NOT NULL DEFAULT '',
@@ -31,6 +33,10 @@ await sql`
 // month (2027-01) as well as a day (2027-01-12).
 await sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS start_date text`;
 await sql`ALTER TABLE applications DROP COLUMN IF EXISTS creds_saved`;
+
+// Workplace (Remote, Hybrid, In-person) and yearly salary in euros.
+await sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS workplace text NOT NULL DEFAULT ''`;
+await sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS salary integer`;
 
 // Every status an application has been in, for the pipeline chart. Rows
 // from before the history existed start with their current status.

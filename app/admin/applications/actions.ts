@@ -26,6 +26,8 @@ export async function addApplication(input: { company: unknown; title: unknown }
     title: "",
     referral: false,
     status: DEFAULT_STATUS,
+    workplace: "",
+    salary: "",
     email: "",
     appliedOn: new Date().toISOString().slice(0, 10),
     link: "",
