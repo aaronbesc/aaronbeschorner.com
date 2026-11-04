@@ -1,12 +1,20 @@
 import type { NextConfig } from "next";
+// Type-only, so nothing from the app is loaded when the config runs.
+import type { Page } from "./lib/i18n";
 
 // Routes from the previous version of the site; old links land on the
 // homepage. Temporary (307) so these paths can be reused later.
 const legacyRoutes = ["/about", "/projects", "/contact", "/blog"];
 
 // Pages besides the homepage. English serves them from the root, Spanish
-// under /es (see app/[lang]).
-const pages = ["/styling"];
+// under /es (see app/[lang]). Keyed by every Page in lib/i18n.ts, so adding
+// a page there without listing it here fails the type check instead of
+// 404ing in English.
+const rewritten: Record<Exclude<Page, "/">, true> = {
+  "/styling": true,
+  "/writing": true,
+};
+const pages = Object.keys(rewritten);
 
 const nextConfig: NextConfig = {
   experimental: {
