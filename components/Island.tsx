@@ -75,6 +75,7 @@ export default function Island({ page }: { page: Page }) {
   const isMac = useSyncExternalStore(noSubscribe, detectMac, () => null);
   const island = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLElement>(null);
   const lastPointer = useRef("");
   // Right after a keyboard toggle the pointer may be resting on the island;
   // ignore hover until the animation is done so it doesn't fight back.
@@ -90,12 +91,16 @@ export default function Island({ page }: { page: Page }) {
     const all = items();
     const at = all.indexOf(document.activeElement as HTMLElement);
     const next = at === -1 ? (step > 0 ? 0 : all.length - 1) : (at + step + all.length) % all.length;
-    all[next]?.focus();
+    // preventScroll: while the menu is still sliding open, focusing an item
+    // it hasn't revealed yet would scroll the island's contents up.
+    all[next]?.focus({ preventScroll: true });
   }
 
   function close() {
     setOpen(false);
-    if (island.current?.contains(document.activeElement)) trigger.current?.focus();
+    if (island.current?.contains(document.activeElement)) {
+      trigger.current?.focus({ preventScroll: true });
+    }
   }
 
   const onKeyDown = useEffectEvent((e: KeyboardEvent) => {
@@ -108,8 +113,10 @@ export default function Island({ page }: { page: Page }) {
         close();
       } else {
         setOpen(true);
-        // Like a command palette: jump straight into the menu.
-        requestAnimationFrame(() => focusItem(1));
+        // Like a command palette, focus goes into the menu, but to the menu
+        // itself: it opens just as it does on hover, nothing highlighted,
+        // and the first arrow key lands on the first item.
+        requestAnimationFrame(() => menu.current?.focus({ preventScroll: true }));
       }
       return;
     }
@@ -277,8 +284,10 @@ export default function Island({ page }: { page: Page }) {
         >
           <div className="min-h-0">
             <nav
+              ref={menu}
+              tabIndex={-1}
               aria-label={t.site}
-              className={`flex flex-col px-1.5 pb-1.5 transition-[opacity,filter] ${
+              className={`flex flex-col px-1.5 pb-1.5 outline-none transition-[opacity,filter] ${
                 open
                   ? "opacity-100 delay-100 duration-300"
                   : "opacity-0 blur-[2px] duration-150"
