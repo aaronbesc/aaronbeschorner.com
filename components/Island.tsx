@@ -167,7 +167,12 @@ export default function Island({ page }: { page: Page }) {
           href: page === "/" ? undefined : pageHref(lang, "/"),
         },
         { label: t.projects, icon: RectangleStackIcon, soon: true },
-        { label: t.writing, icon: PencilSquareIcon, soon: true },
+        {
+          label: t.writing,
+          icon: PencilSquareIcon,
+          current: page === "/writing",
+          href: page === "/writing" ? undefined : pageHref(lang, "/writing"),
+        },
       ],
     },
     {

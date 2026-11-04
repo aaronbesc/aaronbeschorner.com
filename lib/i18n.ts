@@ -8,7 +8,7 @@ export const hasLocale = (value: string): value is Locale =>
   (LOCALES as readonly string[]).includes(value);
 
 /** The site's pages, by their English path. */
-export type Page = "/" | "/styling";
+export type Page = "/" | "/styling" | "/writing";
 
 /** A page's URL in a language: English at the root, Spanish under /es. */
 export function pageHref(locale: Locale, page: Page) {
@@ -122,6 +122,15 @@ const en = {
     pages: (n: number) => (n === 1 ? "1 page" : `${n} pages`),
     back: "back home",
   },
+
+  writing: {
+    description: "Aaron Beschorner on politics, technology, personal growth, fashion and music.",
+    title: "Writing",
+    all: "all",
+    filters: "Categories",
+    empty: "nothing here yet",
+    back: "back home",
+  },
 };
 
 export type Dictionary = typeof en;
@@ -205,6 +214,15 @@ const es: Dictionary = {
     contents: "Editoriales",
     photo: (title, i, n) => `${title}, foto ${i} de ${n}`,
     pages: (n) => (n === 1 ? "1 página" : `${n} páginas`),
+    back: "volver al inicio",
+  },
+
+  writing: {
+    description: "Aaron Beschorner sobre política, tecnología, crecimiento personal, moda y música.",
+    title: "Escritos",
+    all: "todo",
+    filters: "Categorías",
+    empty: "nada por aquí todavía",
     back: "volver al inicio",
   },
 };
