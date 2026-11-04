@@ -1,5 +1,5 @@
-// Creates the job tracker's table, or brings an older one up to date.
-// Safe to run again.
+// Creates the job tracker's and the writing section's tables, or brings
+// older ones up to date. Safe to run again.
 //   npm run db:setup   (reads DATABASE_URL from .env.local)
 import { neon } from "@neondatabase/serverless";
 
@@ -70,4 +70,29 @@ await sql`
   WHERE NOT EXISTS (SELECT 1 FROM status_changes c WHERE c.application_id = a.id)
 `;
 
-console.log("applications table is ready.");
+// Posts for the writing page (app/admin/writing). The cover and the body's
+// blocks are JSON in the shape of lib/writings.ts; their images live in
+// Vercel Blob.
+await sql`
+  CREATE TABLE IF NOT EXISTS posts (
+    id           integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    slug         text    NOT NULL UNIQUE,
+    title        text    NOT NULL,
+    subtitle     text    NOT NULL DEFAULT '',
+    author       text    NOT NULL,
+    published_on date    NOT NULL,
+    category     text    NOT NULL,
+    topic        text    NOT NULL DEFAULT '',
+    cover        jsonb,
+    blocks       jsonb   NOT NULL DEFAULT '[]',
+    published    boolean NOT NULL DEFAULT false,
+    created_at   timestamptz NOT NULL DEFAULT now(),
+    updated_at   timestamptz NOT NULL DEFAULT now()
+  )
+`;
+await sql`
+  CREATE INDEX IF NOT EXISTS posts_published
+  ON posts (published, published_on DESC)
+`;
+
+console.log("applications and posts tables are ready.");

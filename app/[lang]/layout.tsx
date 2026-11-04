@@ -22,9 +22,12 @@ const cascadia = Cascadia_Code({
 
 type Params = { params: Promise<{ lang: string }> };
 
-// One prerendered site per language; any other first segment is a 404.
+// One prerendered site per language. Each page also exports
+// dynamicParams = false, so any other first segment is a 404. It's set on
+// the pages, not here: Next applies a layout's false to every route under
+// it, and writing posts (writing/[slug]) must render slugs that didn't
+// exist at build time.
 export const generateStaticParams = () => LOCALES.map((lang) => ({ lang }));
-export const dynamicParams = false;
 
 // The share image is drawn by app/opengraph-image.tsx. Its URL and the
 // language alternates are resolved against the production domain.

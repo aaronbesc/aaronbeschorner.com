@@ -18,6 +18,9 @@ const arimo = Arimo({
 
 type Params = { params: Promise<{ lang: string }> };
 
+// Only the languages in generateStaticParams (app/[lang]/layout.tsx).
+export const dynamicParams = false;
+
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { lang } = await params;
   if (!hasLocale(lang)) return {};

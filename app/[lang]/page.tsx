@@ -20,6 +20,9 @@ import { PROFILE } from "@/lib/profile";
 import { STACK } from "@/lib/stack";
 import { getMadridWeather } from "@/lib/weather";
 
+// Only the languages in generateStaticParams (app/[lang]/layout.tsx).
+export const dynamicParams = false;
+
 const term =
   "underline decoration-dotted decoration-from-font [text-decoration-skip-ink:none] [text-underline-position:from-font]";
 // During the Go Gators party, neighboring terms take opposite UF colors.

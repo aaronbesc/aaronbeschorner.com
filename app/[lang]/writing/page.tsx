@@ -5,9 +5,12 @@ import Island from "@/components/Island";
 import WritingList from "@/components/WritingList";
 import { DICTIONARIES, hasLocale, pageHref } from "@/lib/i18n";
 import { PROFILE, SHARE_IMAGE } from "@/lib/profile";
-import { WRITINGS } from "@/lib/writings";
+import { getPublishedPosts } from "@/lib/posts";
 
 type Params = { params: Promise<{ lang: string }> };
+
+// Only the languages in generateStaticParams (app/[lang]/layout.tsx).
+export const dynamicParams = false;
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { lang } = await params;
@@ -49,6 +52,7 @@ export default async function WritingPage({ params }: Params) {
   const { lang } = await params;
   if (!hasLocale(lang)) notFound();
   const t = DICTIONARIES[lang].writing;
+  const posts = await getPublishedPosts();
 
   return (
     <div className="flex min-h-dvh flex-col items-center px-4">
@@ -62,7 +66,7 @@ export default async function WritingPage({ params }: Params) {
 
         <WritingList
           lang={lang}
-          writings={WRITINGS}
+          posts={posts}
           t={{ all: t.all, filters: t.filters, empty: t.empty }}
         />
 

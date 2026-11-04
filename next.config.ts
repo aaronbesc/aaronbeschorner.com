@@ -17,6 +17,10 @@ const rewritten: Record<Exclude<Page, "/">, true> = {
 const pages = Object.keys(rewritten);
 
 const nextConfig: NextConfig = {
+  images: {
+    // Images in writing posts, uploaded to the site's Vercel Blob store.
+    remotePatterns: [{ protocol: "https", hostname: "*.public.blob.vercel-storage.com" }],
+  },
   experimental: {
     // The root layout is per language (app/[lang]), so the 404 for URLs
     // that match nothing is its own page: app/global-not-found.tsx.
@@ -47,6 +51,8 @@ const nextConfig: NextConfig = {
     return [
       { source: "/", destination: "/en" },
       ...pages.map((page) => ({ source: page, destination: `/en${page}` })),
+      // Each post on the writing page.
+      { source: "/writing/:slug", destination: "/en/writing/:slug" },
     ];
   },
 };

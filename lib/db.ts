@@ -1,9 +1,11 @@
 import { neon } from "@neondatabase/serverless";
 import type { Application, Field, StatusChange } from "@/lib/applications";
+import type { Post, PostInput, PostSummary } from "@/lib/writings";
 
-// The job tracker's tables in Neon Postgres: applications, and
-// status_changes, every status each one has been in (for the pipeline chart). DATABASE_URL comes from the
-// Neon integration on Vercel (and .env.local for local work); the table is
+// The site's tables in Neon Postgres: for the job tracker, applications
+// and status_changes (every status each one has been in, for the pipeline
+// chart); for the writing page, posts. DATABASE_URL comes from the Neon
+// integration on Vercel (and .env.local for local work); the tables are
 // created by scripts/db-setup.mjs. Only server code imports this file.
 
 const sql = () => {
@@ -158,4 +160,96 @@ export async function updateApplication(id: number, field: Field, value: string 
 
 export async function deleteApplication(id: number) {
   await sql().query(`DELETE FROM applications WHERE id = $1`, [id]);
+}
+
+// ---- Posts (the writing page) ----
+
+// Columns are aliased to the field names in lib/writings.ts. The date is
+// read as text so it stays a plain YYYY-MM-DD; version is the last save
+// in milliseconds, as text.
+const SUMMARY = `id, slug, title, subtitle, author, published_on::text AS date, category,
+  topic, published, (extract(epoch FROM updated_at) * 1000)::bigint::text AS version`;
+const POST = `${SUMMARY}, cover, blocks`;
+const ORDER = "ORDER BY published_on DESC, id DESC";
+
+/** Every post, drafts too, newest first. */
+export async function listPosts() {
+  return (await sql().query(`SELECT ${SUMMARY} FROM posts ${ORDER}`)) as PostSummary[];
+}
+
+export async function listPublishedPosts() {
+  return (await sql().query(
+    `SELECT ${SUMMARY} FROM posts WHERE published ${ORDER}`,
+  )) as PostSummary[];
+}
+
+export async function getPost(id: number) {
+  const rows = await sql().query(`SELECT ${POST} FROM posts WHERE id = $1`, [id]);
+  return (rows[0] as Post | undefined) ?? null;
+}
+
+export async function getPublishedPost(slug: string) {
+  const rows = await sql().query(`SELECT ${POST} FROM posts WHERE slug = $1 AND published`, [
+    slug,
+  ]);
+  return (rows[0] as Post | undefined) ?? null;
+}
+
+const values = (post: PostInput) => [
+  post.slug,
+  post.title,
+  post.subtitle,
+  post.author,
+  post.date,
+  post.category,
+  post.topic,
+  post.cover ? JSON.stringify(post.cover) : null,
+  JSON.stringify(post.blocks),
+  post.published,
+];
+
+export async function createPost(post: PostInput) {
+  const rows = await sql().query(
+    `INSERT INTO posts
+       (slug, title, subtitle, author, published_on, category, topic, cover, blocks, published)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10)
+     RETURNING id`,
+    values(post),
+  );
+  return (rows[0] as { id: number }).id;
+}
+
+/** Saves a post and returns it as stored, or null if it no longer exists. */
+export async function updatePost(id: number, post: PostInput) {
+  const rows = await sql().query(
+    `UPDATE posts SET
+       slug = $1, title = $2, subtitle = $3, author = $4, published_on = $5,
+       category = $6, topic = $7, cover = $8::jsonb, blocks = $9::jsonb,
+       published = $10, updated_at = now()
+     WHERE id = $11
+     RETURNING ${POST}`,
+    [...values(post), id],
+  );
+  return (rows[0] as Post | undefined) ?? null;
+}
+
+/** Deletes a post and returns what it was, so its images can go too. */
+export async function deletePost(id: number) {
+  const rows = await sql().query(`DELETE FROM posts WHERE id = $1 RETURNING ${POST}`, [id]);
+  return (rows[0] as Post | undefined) ?? null;
+}
+
+/** Whether an error is Postgres refusing a duplicate (a slug in use). */
+export const isDuplicate = (error: unknown) =>
+  (error as { code?: string } | null)?.code === "23505";
+
+/** How many applications and posts there are, for the admin home. */
+export async function countAll() {
+  const rows = await sql().query(
+    `SELECT
+       (SELECT count(*) FROM applications)::int AS applications,
+       (SELECT count(*) FROM posts WHERE published)::int AS published,
+       (SELECT count(*) FROM posts WHERE NOT published)::int AS drafts`,
+  );
+  return rows[0] as { applications: number; published: number; drafts: number };
 }

@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import type { Locale } from "@/lib/i18n";
-import { CATEGORIES, topicOf, type Writing } from "@/lib/writings";
+import { pageHref, type Locale } from "@/lib/i18n";
+import { CATEGORIES, categoryOf, shortDate, topicOf, type PostSummary } from "@/lib/writings";
 
 // Layout after mattrickard.com/archive (categories beside a dated list),
 // restyled like calebwu.ca: softer type, hairline dividers, muted until hover.
@@ -10,26 +11,19 @@ import { CATEGORIES, topicOf, type Writing } from "@/lib/writings";
 /** "all", a category id, or "category/topic". */
 type Filter = string;
 
-const matches = (w: Writing, filter: Filter) => {
+const matches = (w: PostSummary, filter: Filter) => {
   if (filter === "all") return true;
   const [category, topic] = filter.split("/");
   return w.category === category && (!topic || w.topic === topic);
 };
 
-/** 2026-07-22 → 07-22-26 in English, 22-07-26 in Spanish. */
-function shortDate(iso: string, lang: Locale) {
-  const [y, m, d] = iso.split("-");
-  const yy = y.slice(2);
-  return lang === "en" ? `${m}-${d}-${yy}` : `${d}-${m}-${yy}`;
-}
-
 export default function WritingList({
   lang,
-  writings,
+  posts: writings,
   t,
 }: {
   lang: Locale;
-  writings: Writing[];
+  posts: PostSummary[];
   t: { all: string; filters: string; empty: string };
 }) {
   const [filter, setFilter] = useState<Filter>("all");
@@ -98,26 +92,29 @@ export default function WritingList({
 
       <ul className="mt-6 lg:mt-0">
         {shown.map((w) => {
-          const topic = topicOf(w.category, w.topic);
+          // The topic, or the category for a post with none.
+          const tag = (topicOf(w.category, w.topic) ?? categoryOf(w.category))?.label[lang];
           return (
-            <li
-              key={w.slug}
-              className="group grid grid-cols-[4.75rem_1fr] items-baseline gap-x-3 border-b border-ink/[0.08] py-4 first:pt-1 sm:grid-cols-[6rem_1fr_auto] sm:gap-x-6 md:py-5"
-            >
-              <time
-                dateTime={w.date}
-                className="font-mono text-[11px] font-light text-muted tabular-nums lg:text-xs"
+            <li key={w.id} className="border-b border-ink/[0.08]">
+              <Link
+                href={pageHref(lang, `/writing/${w.slug}`)}
+                className="group grid grid-cols-[4.75rem_1fr] items-baseline gap-x-3 py-4 outline-none sm:grid-cols-[6rem_1fr_auto] sm:gap-x-6 md:py-5"
               >
-                {shortDate(w.date, lang)}
-              </time>
-              <span className="text-[16px] text-ink transition-colors group-hover:text-muted md:text-[18px]">
-                {w.title}
-              </span>
-              {topic && (
-                <span className="col-start-2 mt-1 font-mono text-[11px] font-light text-muted sm:col-start-3 sm:mt-0 lg:text-xs">
-                  {topic.label[lang]}
+                <time
+                  dateTime={w.date}
+                  className="font-mono text-[11px] font-light text-muted tabular-nums lg:text-xs"
+                >
+                  {shortDate(w.date, lang)}
+                </time>
+                <span className="text-[16px] text-ink transition-colors group-hover:text-muted group-focus-visible:text-muted group-focus-visible:underline md:text-[18px]">
+                  {w.title}
                 </span>
-              )}
+                {tag && (
+                  <span className="col-start-2 mt-1 font-mono text-[11px] font-light text-muted sm:col-start-3 sm:mt-0 lg:text-xs">
+                    {tag}
+                  </span>
+                )}
+              </Link>
             </li>
           );
         })}

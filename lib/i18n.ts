@@ -10,8 +10,11 @@ export const hasLocale = (value: string): value is Locale =>
 /** The site's pages, by their English path. */
 export type Page = "/" | "/styling" | "/writing";
 
+/** A page, or a post on the writing page. */
+export type Path = Page | `/writing/${string}`;
+
 /** A page's URL in a language: English at the root, Spanish under /es. */
-export function pageHref(locale: Locale, page: Page) {
+export function pageHref(locale: Locale, page: Path) {
   if (locale === "en") return page;
   return page === "/" ? "/es" : `/es${page}`;
 }
@@ -130,6 +133,20 @@ const en = {
     filters: "Categories",
     empty: "nothing here yet",
     back: "back home",
+    allWriting: "all writing",
+    minRead: (n: number) => `${n} min read`,
+    by: "by",
+    share: {
+      label: "Share this post",
+      link: "Share",
+      copied: "Link copied",
+      story: "Story",
+      storyLabel: "Share as an Instagram story",
+      preparing: "Preparing…",
+      saved: "Image saved",
+      again: "Tap again",
+      failed: "Couldn't share",
+    },
   },
 };
 
@@ -224,6 +241,20 @@ const es: Dictionary = {
     filters: "Categorías",
     empty: "nada por aquí todavía",
     back: "volver al inicio",
+    allWriting: "todos los escritos",
+    minRead: (n) => `${n} min de lectura`,
+    by: "por",
+    share: {
+      label: "Compartir este escrito",
+      link: "Compartir",
+      copied: "Enlace copiado",
+      story: "Historia",
+      storyLabel: "Compartir como historia de Instagram",
+      preparing: "Preparando…",
+      saved: "Imagen guardada",
+      again: "Toca otra vez",
+      failed: "No se pudo compartir",
+    },
   },
 };
 

@@ -6,6 +6,7 @@ import {
   ChevronUpDownIcon,
   ChevronUpIcon,
 } from "@heroicons/react/16/solid";
+import Link from "next/link";
 import {
   useEffect,
   useMemo,
@@ -16,10 +17,10 @@ import {
   type PointerEvent,
   type ReactNode,
 } from "react";
+import { logOut } from "@/app/admin/actions";
 import {
   addApplication,
   editApplication,
-  logOut,
   removeApplication,
 } from "@/app/admin/applications/actions";
 import DateField, { formatDate } from "@/components/DateField";
@@ -325,7 +326,10 @@ export default function Tracker({
     <main className="mx-auto max-w-[1400px] px-4 py-10 sm:px-8">
       <header className="flex flex-wrap items-baseline justify-between gap-4">
         <div>
-          <h1 className="text-[26px] font-medium">Applications</h1>
+          <Link href="/admin" className="font-mono text-[12px] font-light text-muted transition-colors hover:text-ink">
+            ← admin
+          </Link>
+          <h1 className="mt-1 text-[26px] font-medium">Applications</h1>
           <p className="mt-1 font-mono text-[13px] font-light text-muted">
             {applications(apps.length)}, {apps.filter((a) => a.referral).length} with a referral
           </p>

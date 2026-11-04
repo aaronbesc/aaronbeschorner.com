@@ -21,7 +21,7 @@ import {
   type ComponentType,
   type SVGProps,
 } from "react";
-import { LANGUAGE_NAMES, LOCALES, pageHref, type Page } from "@/lib/i18n";
+import { LANGUAGE_NAMES, LOCALES, pageHref, type Path } from "@/lib/i18n";
 import { PROFILE } from "@/lib/profile";
 import { useDictionary, useLocale } from "./Locale";
 import MaskIcon from "./MaskIcon";
@@ -64,9 +64,10 @@ const noSubscribe = () => () => {};
 
 /**
  * The pill at the top. Hovering it (or tapping it, or ⌘K / Ctrl K) opens a
- * menu with the pages, language and theme. page is the one it's on.
+ * menu with the pages, language and theme. page is the one it's on (or
+ * the post, on the writing page).
  */
-export default function Island({ page }: { page: Page }) {
+export default function Island({ page }: { page: Path }) {
   const lang = useLocale();
   const { island: t, location } = useDictionary();
   const [open, setOpen] = useState(false);

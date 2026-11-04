@@ -1,6 +1,6 @@
 "use server";
 
-import { isOwner, signOut } from "@/auth";
+import { isOwner } from "@/auth";
 import {
   DEFAULT_STATUS,
   FIELDS,
@@ -60,8 +60,4 @@ export async function removeApplication(id: unknown) {
   await requireOwner();
   if (!isId(id)) throw new Error("Invalid id");
   await deleteApplication(id);
-}
-
-export async function logOut() {
-  await signOut({ redirectTo: "/admin/login" });
 }
