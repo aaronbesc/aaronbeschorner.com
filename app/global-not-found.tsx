@@ -21,7 +21,7 @@ const cascadia = Cascadia_Code({
 });
 
 export const metadata: Metadata = {
-  title: "404 · Aaron Beschorner",
+  title: "404, Aaron Beschorner",
 };
 
 const link =

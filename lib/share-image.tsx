@@ -71,13 +71,12 @@ async function cover(post: Post, width: number, height: number) {
 
 const mono = { fontFamily: "Cascadia", fontWeight: 300 } as const;
 
-/** Text cut to a number of lines, with an ellipsis. */
-const clamp = (lines: number) => ({ display: "block", lineClamp: lines }) as const;
+/** Text cut to a number of lines, with no ellipsis. */
+const clamp = (lines: number) => ({ display: "block", lineClamp: `${lines} ""` }) as const;
 
 export async function linkImage(post: Post, lang: Locale) {
   const width = 470;
   const photo = await cover(post, width * 2, (LINK_SIZE.height - 96) * 2);
-  const byline = `${post.author} · ${longDate(post.date, lang, "short")}`;
 
   return new ImageResponse(
     (
@@ -105,7 +104,10 @@ export async function linkImage(post: Post, lang: Locale) {
             )}
             <div style={{ display: "flex", flex: 1 }} />
             <div style={{ display: "flex", justifyContent: "space-between", ...mono, fontSize: 22, color: COLOR.muted }}>
-              <span style={{ color: COLOR.ink }}>{byline}</span>
+              <div style={{ display: "flex", gap: 28 }}>
+                <span style={{ color: COLOR.ink }}>{post.author}</span>
+                <span>{longDate(post.date, lang, "short")}</span>
+              </div>
               {!photo && <span>{host}</span>}
             </div>
           </div>

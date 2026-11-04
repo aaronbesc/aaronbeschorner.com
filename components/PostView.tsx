@@ -159,12 +159,10 @@ export default function PostView({
           </p>
         )}
         <div className="mt-7 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-y border-ink/[0.08] py-3">
-          <p className="font-mono text-[11px] font-light text-muted lg:text-xs">
+          <p className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px] font-light text-muted lg:text-xs">
             <span className="text-ink">{post.author}</span>
-            {" · "}
             <time dateTime={post.date}>{longDate(post.date, lang)}</time>
-            {" · "}
-            {t.minRead(readingMinutes(post.blocks))}
+            <span>{t.minRead(readingMinutes(post.blocks))}</span>
           </p>
           {share}
         </div>

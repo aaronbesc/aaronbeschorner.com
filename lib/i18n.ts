@@ -118,7 +118,7 @@ const en = {
   styling: {
     description:
       "Editorials Aaron Beschorner worked on as a stylist for Strike Magazine: VISAGE, MOD, POSSE and SPORT.",
-    kicker: "styling · Strike Magazine",
+    kicker: "styling for Strike Magazine",
     intro: "Editorials I worked on as a stylist.",
     contents: "Editorials",
     photo: (title: string, i: number, n: number) => `${title}, photo ${i} of ${n}`,
@@ -142,7 +142,7 @@ const en = {
       copied: "Link copied",
       story: "Story",
       storyLabel: "Share as an Instagram story",
-      preparing: "Preparing…",
+      preparing: "Preparing",
       saved: "Image saved",
       again: "Tap again",
       failed: "Couldn't share",
@@ -226,7 +226,7 @@ const es: Dictionary = {
   styling: {
     description:
       "Editoriales en las que Aaron Beschorner trabajó como estilista para Strike Magazine: VISAGE, MOD, POSSE y SPORT.",
-    kicker: "estilismo · Strike Magazine",
+    kicker: "estilismo para Strike Magazine",
     intro: "Editoriales en las que trabajé como estilista.",
     contents: "Editoriales",
     photo: (title, i, n) => `${title}, foto ${i} de ${n}`,
@@ -250,7 +250,7 @@ const es: Dictionary = {
       copied: "Enlace copiado",
       story: "Historia",
       storyLabel: "Compartir como historia de Instagram",
-      preparing: "Preparando…",
+      preparing: "Preparando",
       saved: "Imagen guardada",
       again: "Toca otra vez",
       failed: "No se pudo compartir",

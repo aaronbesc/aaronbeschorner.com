@@ -195,7 +195,7 @@ class TankEngine {
       b.y += vy + gravity;
     }
     for (let pass = 0; pass < 3; pass++) {
-      // Push overlapping capsules apart…
+      // Push overlapping capsules apart,
       for (let i = 0; i < bodies.length; i++) {
         for (let j = i + 1; j < bodies.length; j++) {
           const a = bodies[i];
@@ -212,7 +212,7 @@ class TankEngine {
           }
         }
       }
-      // …and keep them inside the tank (open at the top, so they can drop
+      // and keep them inside the tank (open at the top, so they can drop
       // in), with a little friction on the floor.
       for (const b of bodies) {
         b.x = Math.min(Math.max(b.x, r), w - r);

@@ -3,7 +3,7 @@ import { getPublishedPostBySlug } from "@/lib/posts";
 import { SHARE_CACHE, linkImage } from "@/lib/share-image";
 
 // A post's link preview (see lib/share-image.tsx). Pages link it as
-// ?lang=…&v=<version>, so an edited post gets a new URL that LinkedIn,
+// ?lang=<lang>&v=<version>, so an edited post gets a new URL that LinkedIn,
 // WhatsApp and the rest fetch again.
 
 export async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }) {

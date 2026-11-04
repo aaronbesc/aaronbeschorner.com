@@ -1048,7 +1048,7 @@ function Salary({ app, save }: Pick<RowProps, "app" | "save">) {
 
 /**
  * The status as a colored pill, sized to its text, that opens a menu of
- * known statuses; "Custom…" switches it to a text field.
+ * known statuses; "Custom" switches it to a text field.
  */
 function Status({
   app,
@@ -1097,7 +1097,7 @@ function Status({
         </option>
       ))}
       <option value={CUSTOM} className="bg-surface font-normal text-ink">
-        Custom…
+        Custom
       </option>
     </select>
   );

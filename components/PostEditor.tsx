@@ -380,9 +380,9 @@ export default function PostEditor({ initial }: { initial: Post }) {
   }
 
   const status = uploads.length
-    ? `Uploading ${uploads.length} ${uploads.length === 1 ? "image" : "images"}…`
+    ? `Uploading ${uploads.length} ${uploads.length === 1 ? "image" : "images"}`
     : saving
-      ? "Saving…"
+      ? "Saving"
       : dirty
         ? "Unsaved changes"
         : "Saved";
@@ -417,7 +417,7 @@ export default function PostEditor({ initial }: { initial: Post }) {
               disabled={saving || !dirty}
               className="ml-1 cursor-pointer rounded-full bg-ink px-4 py-1.5 text-[13px] font-medium text-canvas transition-opacity hover:opacity-80 disabled:cursor-default disabled:opacity-35"
             >
-              {saving ? "Saving…" : "Save"}
+              {saving ? "Saving" : "Save"}
             </button>
           </div>
         </div>
@@ -484,7 +484,7 @@ export default function PostEditor({ initial }: { initial: Post }) {
                     <textarea
                       value={block.text}
                       onChange={(e) => updateBlock(block.id, { text: e.target.value })}
-                      placeholder="Write here. Markdown works: ## heading, **bold**, [link](https://…)"
+                      placeholder="Write here. Markdown works, see Formatting on the right."
                       aria-label="Text"
                       rows={5}
                       maxLength={LIMITS.text}
@@ -611,7 +611,7 @@ export default function PostEditor({ initial }: { initial: Post }) {
                 ["## Title", "heading"],
                 ["**word**", "bold"],
                 ["*word*", "italic"],
-                ["[text](https://…)", "link"],
+                ["[text](https://site.com)", "link"],
                 ["> text", "quote"],
                 ["- item", "list"],
                 ["---", "divider"],
@@ -679,10 +679,10 @@ function CoverField({
       >
         <PhotoIcon aria-hidden className="size-5" />
         <span className="text-[14px]">
-          {uploading ? `Uploading… ${Math.round(progress)}%` : "Add a cover image"}
+          {uploading ? `Uploading ${Math.round(progress)}%` : "Add a cover image"}
         </span>
         <span className="font-mono text-[11px] font-light text-muted">
-          optional · a wide image works best · drop or click
+          optional, wide images work best
         </span>
       </FilePicker>
     );

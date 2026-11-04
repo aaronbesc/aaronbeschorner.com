@@ -1,6 +1,6 @@
 export type Contributions = {
   total: number;
-  /** One column per week (Sunday first), each day's level 0–4; -1 pads the edges. */
+  /** One column per week (Sunday first), each day's level 0 to 4; -1 pads the edges. */
   weeks: number[][];
 };
 

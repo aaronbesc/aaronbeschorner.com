@@ -154,7 +154,7 @@ function StackCard() {
   return <TechTank tools={STACK} />;
 }
 
-// Placeholder until the content for cards 3–4 is designed.
+// Placeholder until the content for cards 3 and 4 is designed.
 function ComingSoonCard({ text }: { text: string }) {
   return (
     <div className="flex size-full items-center justify-center font-mono text-[3.6cqi] font-light text-muted md:text-[1.9cqi]">

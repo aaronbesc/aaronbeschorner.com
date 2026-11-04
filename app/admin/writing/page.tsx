@@ -60,8 +60,9 @@ export default async function Writing() {
                 href={`/admin/writing/${post.id}`}
                 className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 px-5 py-4 transition-colors outline-none hover:bg-ink/[0.03] focus-visible:bg-ink/[0.04] sm:grid-cols-[7rem_1fr_auto]"
               >
-                <span className="font-mono text-[12px] font-light text-muted max-sm:order-2 max-sm:col-span-2">
-                  {longDate(post.date, "en", "short")} · {kicker(post, "en")}
+                <span className="flex flex-wrap gap-x-3 font-mono text-[12px] font-light text-muted max-sm:order-2 max-sm:col-span-2 sm:flex-col">
+                  <span>{longDate(post.date, "en", "short")}</span>
+                  <span>{kicker(post, "en")}</span>
                 </span>
                 <span className="min-w-0">
                   <span className="block truncate text-[15px]">{post.title}</span>

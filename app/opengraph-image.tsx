@@ -4,7 +4,7 @@ import { ImageResponse } from "next/og";
 import { PROFILE, SHARE_IMAGE } from "@/lib/profile";
 
 // The preview shown when the site is shared (LinkedIn, WhatsApp, iMessage,
-// X…). Rendered once at build time: the homepage's white card as a poster,
+// X). Rendered once at build time: the homepage's white card as a poster,
 // in the light palette, large enough to read as a thumbnail.
 
 const TAGLINE = SHARE_IMAGE.tagline;

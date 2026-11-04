@@ -55,11 +55,11 @@ export const categoryOf = (id: string) => CATEGORIES.find((c) => c.id === id);
 export const topicOf = (category: string, topic: string) =>
   categoryOf(category)?.topics.find((t) => t.id === topic);
 
-/** "politics · venezuela", or just "politics" for a post with no topic. */
+/** "politics / venezuela", or just "politics" for a post with no topic. */
 export function kicker(post: Pick<Post, "category" | "topic">, lang: Locale) {
   const category = categoryOf(post.category);
   const topic = topicOf(post.category, post.topic);
-  return [category?.label[lang], topic?.label[lang]].filter(Boolean).join(" · ");
+  return [category?.label[lang], topic?.label[lang]].filter(Boolean).join(" / ");
 }
 
 /** An uploaded image, with its size so pages can lay it out before it loads. */
@@ -275,15 +275,20 @@ export function paragraphs(blocks: Block[]) {
     .filter(Boolean);
 }
 
-/** Cuts text at a word, with an ellipsis. */
+/**
+ * Cuts text to at most max characters, at the end of a sentence when one
+ * ends past halfway, otherwise at a word.
+ */
 function cut(text: string, max: number) {
   if (text.length <= max) return text;
   const head = text.slice(0, max);
+  const sentence = Math.max(head.lastIndexOf(". "), head.lastIndexOf("? "), head.lastIndexOf("! "));
+  if (sentence > max / 2) return head.slice(0, sentence + 1);
   const space = head.lastIndexOf(" ");
-  return `${(space > max * 0.6 ? head.slice(0, space) : head).replace(/[\s,.;:—-]+$/, "")}…`;
+  return (space > 0 ? head.slice(0, space) : head).replace(/[\s,;:-]+$/, "");
 }
 
-/** The start of the body's prose, cut at a word, for previews. */
+/** The start of the body's prose, for previews. */
 export function excerpt(blocks: Block[], max: number) {
   return cut(paragraphs(blocks).join(" "), max);
 }
