@@ -24,6 +24,6 @@ export const STACK: Tool[] = [
   { name: "Claude", logo: "/icons/claude.png" },
   { name: "Git", logo: "/icons/stack/git.svg" },
   { name: "GitHub", logo: "/icons/stack/github.svg", invertInDark: true },
-  { name: "Vercel", logo: "/icons/stack/vercel.svg", invertInDark: true },
+  { name: "FastAPI", logo: "/icons/stack/fastapi.svg" },
   { name: "Figma", logo: "/icons/figma.png" },
 ];
